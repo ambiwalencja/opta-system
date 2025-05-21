@@ -1,4 +1,4 @@
-from db_models.possible_values import PossibleValues
+from db_models.config import PossibleValues
 from sqlalchemy.orm.session import Session
 
 def populate_possible_values(db: Session):

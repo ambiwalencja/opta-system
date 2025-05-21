@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 from db.db_connect import engine
-from db_models import grupa, pacjent, spotkanie_grupowe, uzytkownik, wizyta_indywidualna
+from db_models import client_data, user_data, config
 
 
 # uvicorn main:app --reload
@@ -41,8 +41,6 @@ def root():
     return "Automations API"
 
 # create tables when starting program
-grupa.Base.metadata.create_all(engine)
-pacjent.Base.metadata.create_all(engine)
-spotkanie_grupowe.Base.metadata.create_all(engine)
-uzytkownik.Base.metadata.create_all(engine)
-wizyta_indywidualna.Base.metadata.create_all(engine)
+client_data.ClientDataBase.metadata.create_all(engine)
+user_data.UserDataBase.metadata.create_all(engine)
+config.ConfigBase.metadata.create_all(engine)

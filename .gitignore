@@ -4,3 +4,4 @@ env/
 *.docx
 __pycache__
 *.json
+archive/
