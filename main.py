@@ -2,14 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-from db.db_connect import engine
+from db import db_connect
 from db_models import client_data, user_data, config
 
 
 # uvicorn main:app --reload
 # http://127.0.0.1:8000/docs
 
-
+print('dupa')
+print(os.name)
 if os.name == "nt":
     load_dotenv()
 
@@ -41,6 +42,6 @@ def root():
     return "Automations API"
 
 # create tables when starting program
-client_data.ClientDataBase.metadata.create_all(engine)
-user_data.UserDataBase.metadata.create_all(engine)
-config.ConfigBase.metadata.create_all(engine)
+client_data.ClientDataBase.metadata.create_all(db_connect.engine)
+user_data.UserDataBase.metadata.create_all(db_connect.engine)
+config.ConfigBase.metadata.create_all(db_connect.engine)

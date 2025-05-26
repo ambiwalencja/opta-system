@@ -1,7 +1,9 @@
 # model tabeli Users
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean, MetaData, relationship, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean, MetaData, ForeignKey
 from db.db_connect import rebase
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
 
 UserDataBase = declarative_base(metadata=MetaData(schema="UserData"))
 # user_metadata = MetaData(schema='UserData')
