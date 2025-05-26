@@ -19,25 +19,24 @@ def rebase(cls): # decorator for handling cross schema relationships
                 pass
         return cls
 
-if __name__ == "__main__":
-    print('dupa db connect')
-    if os.name == "nt":
-        load_dotenv()
+print('dupa db connect')
+if os.name == "nt":
+    load_dotenv()
 
-    DATABASE_URL = os.environ.get('DB_CONNECTION_STRING')
-    engine = create_engine(DATABASE_URL)
-    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+DATABASE_URL = os.environ.get('DB_CONNECTION_STRING')
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
-    # Base = declarative_base()
+# Base = declarative_base()
 
-    # https://elarkk.github.io/blog/multi-schema-sqlalchemy TODO: umieścić tables w schemas
-    # abstrakcyjne klasy są niepotrzebne
-    # foreign keys zrealizować według klasycznego rozwiązania sqlalchemy, bez dekoratorów
-    # jeden plik na schemę, nie na model
+# https://elarkk.github.io/blog/multi-schema-sqlalchemy TODO: umieścić tables w schemas
+# abstrakcyjne klasy są niepotrzebne
+# foreign keys zrealizować według klasycznego rozwiązania sqlalchemy, bez dekoratorów
+# jeden plik na schemę, nie na model
 
-    def get_db():
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
