@@ -5,23 +5,31 @@
 
 
 from sqlalchemy import Column, Integer, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData
-from db.db_connect import rebase
-from sqlalchemy.ext.declarative import declarative_base
+# from db.db_connect import rebase
+# from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from db_models.user_data import User
+# from db_models.user_data import User
+from db.db_connect import Base
 
-ClientDataBase = declarative_base(metadata=MetaData(schema="client_data"))
+# ClientDataBase = declarative_base(metadata=MetaData(schema="client_data"))
 # client_metadata = MetaData(schema='client_data')
 # ClientDataBase = declarative_base(metadata=client_metadata)
 
 # @rebase
-class Pacjent(ClientDataBase):
-    __tablename__ = "pacjent"
+# class Pacjent(ClientDataBase):
+
+print(id(Base))
+
+class Pacjent(Base):
+    __tablename__ = "pacjenci"  # to musi być dokładnie ta sama nazwa, co nazwa tabeli, do której chcemy wrzucać dane
+    __table_args__ = {'schema': 'client_data'}
     ID_pacjenta = Column(Integer, primary_key=True)
-    ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika)) # osoba rejestrująca
-    Timestamp = Column(DateTime)
+    # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika)) # osoba rejestrująca
+    ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika')) # osoba rejestrująca
+    Created = Column(DateTime)
+    Last_modified = Column(DateTime)
     Data_zgloszenia = Column(Date)
-    # data1konsultacji - niepotrzebna bo to mamy w tabeli wizyt
+    Data_ostatniej_wizyty = Column(Date)
     Imie = Column(String)
     Nazwisko = Column(String)
     Email = Column(String) 
@@ -30,7 +38,7 @@ class Pacjent(ClientDataBase):
     Ulica = Column(String)
     Nr_domu = Column(Integer)
     Nr_mieszkania = Column(Integer)
-    Kod_pocztowy = Column(String) # czy potrzebny?
+    Kod_pocztowy = Column(String) # opcjonalny
     Status_zawodowy = Column(String) 
     Stan_cywilny = Column(String)
     Wyksztalcenie = Column(String) # string czy int
@@ -62,13 +70,17 @@ class Pacjent(ClientDataBase):
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='pacjent')
 
 # @rebase
-class WizytaIndywidualna(ClientDataBase):
-    __tablename__ = "wizyta_indywidualna" # to musi być dokładnie ta sama nazwa, co nazwa tabeli, do której chcemy wrzucać dane
+# class WizytaIndywidualna(ClientDataBase):
+class WizytaIndywidualna(Base):
+    __tablename__ = "wizyty_indywidualne"
+    __table_args__ = {'schema': 'client_data'}
     ID_wizyty = Column(Integer, primary_key=True)
-    ID_pacjenta = Column(Integer, ForeignKey(Pacjent.ID_pacjenta)) 
-    ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika))
-    Timestamp = Column(DateTime)
+    ID_pacjenta = Column(Integer, ForeignKey('pacjenci.ID_pacjenta')) 
+    # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika))
+    ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
+    Created = Column(DateTime)
     Data = Column(Date) # z tego można wziąć rok, miesiąc
+    Last_modified = Column(DateTime)
     Specjalista = Column(String) # albo Column(Int) ale moim zdaniem lepiej opisowo
     Liczba_godzin = Column(Integer) # czy potrzebne?
     Notatka_diagnoza_sytuacji = Column(String) # do decyzji czy tutaj czy przy pacjencie
@@ -81,12 +93,16 @@ class WizytaIndywidualna(ClientDataBase):
     uzytkownik = relationship('User', back_populates='wizyty_indywidualne')
 
 # @rebase
-class Grupa(ClientDataBase):
-    __tablename__ = "grupa" # to musi być dokładnie ta sama nazwa, co nazwa tabeli, do której chcemy wrzucać dane
+# class Grupa(ClientDataBase):
+class Grupa(Base):
+    __tablename__ = "grupy"
+    __table_args__ = {'schema': 'client_data'}
     ID_grupy = Column(Integer, primary_key=True)
-    ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika)) # ID użytkownika, który dodał grupę do bazy danych
+    # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika)) # ID użytkownika, który dodał grupę do bazy danych
+    ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Nazwa_grupy = Column(String)
-    Timestamp = Column(DateTime) # data dodania?
+    Created = Column(DateTime)
+    Last_modified = Column(DateTime)
     Data_rozpoczecia = Column(Date) # ? czy to będzie po prostu data pierwszego spotkania
     Data_zakonczenia = Column(Date) # ? jw - data ostatniego
     Prowadzacy = Column(String) # Lista ID uzytkownikow # TODO: czy to też powinno być jakoś obsłużone w formie foreign keys? tutaj byłaby relacja many to many
@@ -98,12 +114,15 @@ class Grupa(ClientDataBase):
 
 
 # @rebase
-class Spotkanie_grupowe(ClientDataBase):
-    __tablename__ = "spotkanie_grupowe" # to musi być dokładnie ta sama nazwa, co nazwa tabeli, do której chcemy wrzucać dane
+# class Spotkanie_grupowe(ClientDataBase):
+class Spotkanie_grupowe(Base):
+    __tablename__ = "spotkania_grupowe"
+    __table_args__ = {'schema': 'client_data'}
     ID_spotkania = Column(Integer, primary_key=True)
-    ID_grupy = Column(Integer, ForeignKey(Grupa.ID_grupy))
-    # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika)) # TODO: tak? czy rejestrują je użytkownicy?
-    Timestamp = Column(DateTime)
+    ID_grupy = Column(Integer, ForeignKey('grupy.ID_grupy'))
+    # ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika')) # TODO: tak? czy rejestrują je użytkownicy?
+    Created = Column(DateTime)
+    Last_modified = Column(DateTime)
     Data = Column(Date)
     Prowadzacy = Column(String) # ?
     Liczba_godzin = Column(Integer)
@@ -115,11 +134,15 @@ class Spotkanie_grupowe(ClientDataBase):
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
 
 # @rebase
-class UczestnikGrupy(ClientDataBase):
-    __tablename__ = "uczestnik_grupy"
+# class UczestnikGrupy(ClientDataBase):
+class UczestnikGrupy(Base):
+    __tablename__ = "uczestnicy_grupy"
+    __table_args__ = {'schema': 'client_data'}
     ID_uczestnika_grupy = Column(Integer, primary_key=True) # id pary - uczestniko-grupy
-    ID_grupy = Column(Integer, ForeignKey(Grupa.ID_grupy))
-    ID_pacjenta = Column(Integer, ForeignKey(Pacjent.ID_pacjenta))
+    ID_grupy = Column(Integer, ForeignKey('grupy.ID_grupy'))
+    ID_pacjenta = Column(Integer, ForeignKey('pacjenci.ID_pacjenta'))
+    Created = Column(DateTime)
+    Last_modified = Column(DateTime)
     Ukonczenie = Column(Boolean)
     Rezultat = Column(Boolean)
 
