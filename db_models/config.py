@@ -1,15 +1,5 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime
-# from sqlalchemy import MetaData
-# from sqlalchemy.ext.declarative import declarative_base
 from db.db_connect import Base
-
-# if __name__ == "__main__":
-
-# ConfigBase = declarative_base(metadata=MetaData(schema="config"))
-# config_metadata = MetaData(schema='Config')
-# ConfigBase = declarative_base(metadata=config_metadata)
-
-print(id(Base))
 
 class PossibleValues(Base):
     __tablename__ = "possible_values"

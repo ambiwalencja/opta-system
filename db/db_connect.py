@@ -13,7 +13,6 @@ DATABASE_URL = os.environ.get('DB_CONNECTION_STRING')
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
-print(id(Base))
 
 def get_db():
     db = SessionLocal()

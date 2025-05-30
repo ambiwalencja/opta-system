@@ -5,26 +5,14 @@
 
 
 from sqlalchemy import Column, Integer, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData
-# from db.db_connect import rebase
-# from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-# from db_models.user_data import User
 from db.db_connect import Base
 
-# ClientDataBase = declarative_base(metadata=MetaData(schema="client_data"))
-# client_metadata = MetaData(schema='client_data')
-# ClientDataBase = declarative_base(metadata=client_metadata)
-
-# @rebase
-# class Pacjent(ClientDataBase):
-
-print(id(Base))
 
 class Pacjent(Base):
     __tablename__ = "pacjenci"  # to musi być dokładnie ta sama nazwa, co nazwa tabeli, do której chcemy wrzucać dane
     __table_args__ = {'schema': 'client_data'}
     ID_pacjenta = Column(Integer, primary_key=True)
-    # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika)) # osoba rejestrująca
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika')) # osoba rejestrująca
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
@@ -69,13 +57,11 @@ class Pacjent(Base):
     uzytkownik = relationship("User", back_populates="pacjenci")
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='pacjent')
 
-# @rebase
-# class WizytaIndywidualna(ClientDataBase):
 class WizytaIndywidualna(Base):
     __tablename__ = "wizyty_indywidualne"
     __table_args__ = {'schema': 'client_data'}
     ID_wizyty = Column(Integer, primary_key=True)
-    ID_pacjenta = Column(Integer, ForeignKey('pacjenci.ID_pacjenta')) 
+    ID_pacjenta = Column(Integer, ForeignKey('client_data.pacjenci.ID_pacjenta')) 
     # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika))
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Created = Column(DateTime)
@@ -92,8 +78,6 @@ class WizytaIndywidualna(Base):
     pacjent = relationship('Pacjent', back_populates='wizyty_indywidualne')
     uzytkownik = relationship('User', back_populates='wizyty_indywidualne')
 
-# @rebase
-# class Grupa(ClientDataBase):
 class Grupa(Base):
     __tablename__ = "grupy"
     __table_args__ = {'schema': 'client_data'}
@@ -113,13 +97,11 @@ class Grupa(Base):
     uzytkownik = relationship('User', back_populates='grupy')
 
 
-# @rebase
-# class Spotkanie_grupowe(ClientDataBase):
 class Spotkanie_grupowe(Base):
     __tablename__ = "spotkania_grupowe"
     __table_args__ = {'schema': 'client_data'}
     ID_spotkania = Column(Integer, primary_key=True)
-    ID_grupy = Column(Integer, ForeignKey('grupy.ID_grupy'))
+    ID_grupy = Column(Integer, ForeignKey('client_data.grupy.ID_grupy'))
     # ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika')) # TODO: tak? czy rejestrują je użytkownicy?
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
@@ -133,14 +115,13 @@ class Spotkanie_grupowe(Base):
     grupa = relationship('Grupa', back_populates='spotkania_grupowe')
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
 
-# @rebase
-# class UczestnikGrupy(ClientDataBase):
+
 class UczestnikGrupy(Base):
     __tablename__ = "uczestnicy_grupy"
     __table_args__ = {'schema': 'client_data'}
     ID_uczestnika_grupy = Column(Integer, primary_key=True) # id pary - uczestniko-grupy
-    ID_grupy = Column(Integer, ForeignKey('grupy.ID_grupy'))
-    ID_pacjenta = Column(Integer, ForeignKey('pacjenci.ID_pacjenta'))
+    ID_grupy = Column(Integer, ForeignKey('client_data.grupy.ID_grupy'))
+    ID_pacjenta = Column(Integer, ForeignKey('client_data.pacjenci.ID_pacjenta'))
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
     Ukonczenie = Column(Boolean)

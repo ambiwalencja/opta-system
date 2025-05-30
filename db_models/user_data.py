@@ -1,17 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime
-# from sqlalchemy import MetaData
-# from db.db_connect import rebase
-# from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from db.db_connect import Base
 
-print(id(Base))
 
-# UserDataBase = declarative_base(metadata=MetaData(schema="user_data"))
-# user_metadata = MetaData(schema='UserData')
-# UserDataBase = declarative_base(metadata=user_metadata)
-
-# @rebase
 class User(Base):
     __tablename__ = "users"
     __table_args__ = {"schema": "user_data"}
