@@ -5,13 +5,6 @@ import os
 from db import db_connect
 from db_models import user_data, client_data, config
 
-'''
-TODO: status: sprawdzić jeszcze raz ostanią odpowiedź czata, część już rzeczy, które wskazał, zrobiłam
-nadal nie wiem skąd ten błąd
-raise exc.NoReferencedTableError(
-sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'wizyty_indywidualne.ID_pacjenta' could not find table 'pacjenci' with which to generate a foreign key to target column 'ID_pacjenta'
-'''
-
 # uvicorn main:app --reload
 # http://127.0.0.1:8000/docs
 

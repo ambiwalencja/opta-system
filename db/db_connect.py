@@ -5,7 +5,6 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.schema import CreateSchema
 
-# print('dupa db connect')
 if os.name == "nt":
     load_dotenv()
 
@@ -30,18 +29,3 @@ def create_schema(schema_name): # Create schemas if they don't exist
         else:
             print(f"Schema {schema_name} already exists.")
         connection.commit() # Commit the schema creation
-
-
-# def rebase(cls): # decorator for handling cross schema relationships
-#         for name, attr in cls.__dict__.items():
-#             if isinstance(attr, ForeignKey):
-#                 # The ForeignKey string itself (e.g., 'UserData.user.ID_uzytkownika') handles the schema
-#                 pass
-#             if isinstance(attr, relationship):
-#                 # For relationships, ensure the foreign side knows its schema
-#                 # This logic helps if the relationship argument wasn't fully qualified (e.g., just "User" instead of "UserData.User")
-#                 # and the related class's __table__ doesn't yet have its schema set from its Base
-#                 # (though with the MetaData(schema=...) approach, it usually will)
-#                 # The key is that the Base class for the related model already carries the schema info.
-#                 pass
-#         return cls
