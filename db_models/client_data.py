@@ -93,11 +93,12 @@ class Grupa(Base):
     Liczba_godzin = Column(Integer) # czy potrzebne? to może być suma czasu trwania poszczególnych spotkań
     Typ_grupy = Column(String) # warsztat, czy grupa wsparcia, czy trening, etc
 
-    spotkania_grupowe = relationship('Spotkanie_grupowe', back_populates='grupa')
+    spotkania_grupowe = relationship('SpotkanieGrupowe', back_populates='grupa')
+    uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
     uzytkownik = relationship('User', back_populates='grupy')
 
 
-class Spotkanie_grupowe(Base):
+class SpotkanieGrupowe(Base):
     __tablename__ = "spotkania_grupowe"
     __table_args__ = {'schema': 'client_data'}
     ID_spotkania = Column(Integer, primary_key=True)
@@ -113,7 +114,7 @@ class Spotkanie_grupowe(Base):
     Notatka_rezultaty = Column(String)
 
     grupa = relationship('Grupa', back_populates='spotkania_grupowe')
-    uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
+    
 
 
 class UczestnikGrupy(Base):
