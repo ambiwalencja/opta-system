@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 from db import db_connect
 from db_models import user_data, client_data, config
+from routers import user_endpoints
 
 # uvicorn main:app --reload
 # http://127.0.0.1:8000/docs
@@ -13,8 +14,8 @@ if os.name == "nt":
     load_dotenv()
 
 app = FastAPI(
-    title="Automations",
-    description="Automations API",
+    title="OPTA system",
+    description="System dokumentacji i ewaluacji OPTA",
     version="0.1",
     # lifespan=lifespan
 )
@@ -31,8 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.include_router(test_endpoints.router)
-# app.include_router(users_endpoints.router)
+app.include_router(user_endpoints.router)
 
 @app.get("/")
 def root():
