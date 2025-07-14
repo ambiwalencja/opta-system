@@ -1,8 +1,7 @@
-#TODO: ogarnąć co jest czym tutaj
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError # pip install python-jose>=3.0.0 to solve "jose.jwt not found"
+from jose import jwt, JWTError # pip install python-jose[cryptography]
 from fastapi import HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from db.db_connect import get_db
@@ -23,9 +22,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     expire = datetime.now(timezone.utc) + expires_delta
   else:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    # TODO:   File "C:\Users\Hela\Documents\Prywata\praca\opta\opta - nowe narzędzie\opta-system\auth\oauth2.py", line 25, in create_access_token
-    # expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    # TypeError: unsupported type for timedelta minutes component: str
   to_encode.update({"exp": expire})
   encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
   return encoded_jwt
