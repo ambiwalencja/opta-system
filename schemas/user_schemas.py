@@ -10,8 +10,8 @@ class UserBase(BaseModel):
 
 
 class UserDisplay(BaseModel):
-    username: str = Field(alias='Username')
-    role: str = Field(alias='Role') # TODO: czy tutaj chodziło o to, żeby sie rozumieć z bazą danych? bo w bazie te atrybuty są z wielkiej litery właśnie.
+    username: str = Field(alias='Username', serialization_alias='username')
+    role: str = Field(alias='Role', serialization_alias='role')
     class Config(): # to robi, że klasa UserDisplay rozumie, czyta obiekty sqlalchemy i jest w stanie zmapować na jsona
         from_attributes = True
 
