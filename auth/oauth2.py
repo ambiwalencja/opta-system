@@ -9,7 +9,7 @@ from utils import user_functions
 # from schemas.users_schemas import UserSignIn
 import os
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login_form", )
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 ALGORITHM = 'HS256'
