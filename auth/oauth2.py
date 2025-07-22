@@ -19,7 +19,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES'))
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
   to_encode = data.copy()
   if expires_delta:
-    expire = datetime.now(timezone.utc) + expires_delta
+    expire = datetime.now(timezone.utc) + expires_delta #tutaj jest timezone.utc - w innych miejscach mamy po prostu datetime.now
+    # możliwe, że ktoś, np mama, będzie się logować z kraju z inną strefą, więc dobrze byłoby to obsłużyć. ale chyba na ten moment nie trzeba
   else:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
   to_encode.update({"exp": expire})
