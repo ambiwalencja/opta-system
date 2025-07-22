@@ -77,7 +77,7 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
             detail=f'User {request.username} does not exist')
     if current_user.Role != 'admin':
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
     user.Password = Hash.bcrypt(request.password)
     db.add(user)
