@@ -37,6 +37,8 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
             detail='Incorrect password')
     
     access_token = create_access_token(data={'username': user.Username})
+    
+    user_functions.update_last_login(db, user)
 
     return {
         'access_token': access_token,
@@ -45,3 +47,18 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
         'username': user.Username,
         'role': user.Role
     }
+
+@router.post('/reset')
+def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_current_user)):
+    user = db.query(User).filter(User.Username == request.username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'User {request.username} does not exist')
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'You are not an admin')
+    user.Password = Hash.bcrypt(request.password)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return True

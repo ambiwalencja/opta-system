@@ -31,3 +31,9 @@ def get_user_by_username(db: Session, username: str):
         detail=f'User with username {username} not found')
     return user
 
+def update_last_login(db: Session, user: User):
+    user.Last_login = datetime.now()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return 
