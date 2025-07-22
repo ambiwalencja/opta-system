@@ -34,7 +34,7 @@ def create_user(request: UserBase, passphrase: str, db: Session = Depends(get_db
 def login(request: UserSignIn, db: Session = Depends(get_db)):
     user = user_functions.get_user_by_username(db, request.username)
     if not Hash.verify(user.Password, request.password):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect password')
     
     access_token = create_access_token(data={'username': user.Username})
@@ -53,7 +53,7 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)): # mogą sie tak samo nazywać dwa endpointy?
     user = user_functions.get_user_by_username(db, form_data.username)
     if not Hash.verify(user.Password, form_data.password):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect password')
     
     access_token = create_access_token(data={'username': user.Username})
@@ -76,7 +76,7 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
             detail=f'User {request.username} does not exist')
     if current_user.Role != 'admin':
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
     user.Password = Hash.bcrypt(request.password)
     db.add(user)
