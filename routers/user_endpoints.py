@@ -34,7 +34,7 @@ def create_user(request: UserBase, passphrase: str, db: Session = Depends(get_db
 def login(request: UserSignIn, db: Session = Depends(get_db)):
     user = user_functions.get_user_by_username(db, request.username)
     if not Hash.verify(user.Password, request.password):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect password')
     
     access_token = create_access_token(data={'username': user.Username})
@@ -51,10 +51,10 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = user_functions.get_user_by_username(db, form_data.username)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
             detail='User not found')
     if not Hash.verify(user.Password, form_data.password):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect password')
     
     access_token = create_access_token(data={'username': user.Username})
@@ -64,6 +64,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         'token_type': 'bearer'
     }
 
-@router.get('/me', response_model=UserDisplay) # 
+@router.get('/me', response_model=UserDisplay) 
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
