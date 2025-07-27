@@ -1,5 +1,5 @@
 from sqlalchemy.orm.session import Session
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 import os
 from db.db_connect import get_db
@@ -34,8 +34,7 @@ def create_user(request: UserBase, passphrase: str, db: Session = Depends(get_db
 
 
 @router.post('/login')
-# TODO: tutaj response dodany w body
-def login(request: UserSignIn, response: Response, db: Session = Depends(get_db)):
+def login(request: UserSignIn, db: Session = Depends(get_db)):
     user = user_functions.get_user_by_username(db, request.username)
     if not Hash.verify(user.Password, request.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -45,16 +44,6 @@ def login(request: UserSignIn, response: Response, db: Session = Depends(get_db)
     refresh_token = create_refresh_token(data={"username": user.Username})
     
     user_functions.update_last_login(db, user)
-
-    #TODO: to dodane - zapisywanie refresh tokenu do cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=REFRESH_TOKEN_EXPIRE_SECONDS
-    )
 
     return {
         'access_token': access_token,
@@ -66,7 +55,7 @@ def login(request: UserSignIn, response: Response, db: Session = Depends(get_db)
     }
 
 @router.post('/login_form') # do testowania, do autoryzacji w docsach
-def login_form(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = user_functions.get_user_by_username(db, form_data.username)
     if not Hash.verify(user.Password, form_data.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,60 +64,17 @@ def login_form(response: Response, form_data: OAuth2PasswordRequestForm = Depend
     access_token = create_access_token(data={'username': user.Username})
     refresh_token = create_refresh_token(data={"username": user.Username})
     
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=REFRESH_TOKEN_EXPIRE_SECONDS
-    )
-
     return {
         'access_token': access_token,
         "refresh_token": refresh_token,
         'token_type': 'bearer'
     }
 
-# TODO: wersja refresha bez zapisywania tokenu w cookiesie
-# @router.post('/refresh')
-# def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
-#     try:
-#         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-#         if payload.get("scope") != "refresh_token":
-#             raise HTTPException(status_code=401, detail="Invalid scope")
-#     except JWTError:
-#         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-#     user = user_functions.get_user_by_username(db, payload.get("username"))
-
-#     new_access_token = create_access_token(data={"username": user.Username})
-#     return {
-#         "access_token": new_access_token,
-#         "token_type": "bearer"
-#     }
-
-# TODO: wersja z cookie - z dekodowaniem tokenu na miejscu - potrzebny wtedy import jwt
-# @router.post("/refresh")
-# def refresh_token(request: Request):
-#     refresh_token = request.cookies.get("refresh_token")
-#     if not refresh_token:
-#         raise HTTPException(status_code=401, detail="No refresh token")
-
-#     try:
-#         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-#         if payload.get("scope") != "refresh_token":
-#             raise HTTPException(status_code=401, detail="Invalid scope")
-#     except JWTError:
-#         raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-#     new_access_token = create_access_token({"username": payload.get("username")})
-#     return {"access_token": new_access_token}
-
-# wersja z cookie - z dekodowaniem tokenu w osobnej funkcji w oauth2
 @router.post("/refresh2")
-def refresh_token2(request: Request, db: Session = Depends(get_db)):
-    refresh_token = request.cookies.get("refresh_token")
+async def refresh_token2(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    refresh_token = body.get("refresh_token")
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
 
@@ -138,10 +84,10 @@ def refresh_token2(request: Request, db: Session = Depends(get_db)):
     return {"access_token": new_access_token}
 
 
-# ver 1 - z użyciem get_current_user
-@router.get('/me', response_model=UserDisplay)
-def get_current_user_info(current_user: User = Depends(get_current_user)):
-    return current_user
+# # ver 1 - z użyciem get_current_user
+# @router.get('/me', response_model=UserDisplay)
+# def get_current_user_info(current_user: User = Depends(get_current_user)):
+#     return current_user
 
 
 # ver 2 - z użyciem get_user_from_token (dla access i refresh tokena)
@@ -151,7 +97,8 @@ def get_me(current_user: User = Depends(get_user_from_token("access_token"))):
 
 
 @router.post('/reset')
-def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_current_user)):
+def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+# def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_current_user)):
     user = db.query(User).filter(User.Username == request.username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -164,9 +111,3 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
     db.commit()
     db.refresh(user)
     return True
-
-#TODO: czat zaproponował też taki endpoint:
-@router.post('/logout')
-def logout(response: Response):
-    response.delete_cookie("refresh_token")
-    return {"message": "Logged out"}

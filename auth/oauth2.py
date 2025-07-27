@@ -1,12 +1,10 @@
 from fastapi.security import OAuth2PasswordBearer
-# from typing import Optional
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError # pip install python-jose[cryptography]
 from fastapi import HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from db.db_connect import get_db
 from utils import user_functions
-# from schemas.users_schemas import UserSignIn
 import os
 from db_models.user_data import User
 
@@ -23,7 +21,7 @@ def create_access_token(data: dict):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     # tutaj jest timezone.utc - w innych miejscach mamy po prostu datetime.now
     # możliwe, że ktoś, np mama, będzie się logować z kraju z inną strefą, więc dobrze byłoby to obsłużyć. ale chyba na ten moment nie trzeba
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "scope": "access_token"})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
