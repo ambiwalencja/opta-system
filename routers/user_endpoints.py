@@ -114,14 +114,15 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
 
 @router.post('/display')
 def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
-    data = db.query(User.ID_uzytkownika, User.Username, User.Role, User.Last_login).all() # z bazy wyciągamy tylko wybrane kolumny, bez hasła
+    data = db.query(User.ID_uzytkownika, User.Username, User.Role, User.Created, User.Last_login).all()
     response_data = []
     for row in data:
         response_data.append({
             'ID': row[0],
             'Username': row[1],
             'Role': row[2],
-            'Last login': row[3]
+            'Created': user_functions.format_datetime(row[3]),
+            'Last login': user_functions.format_datetime(row[4])
         })
     return response_data
 
