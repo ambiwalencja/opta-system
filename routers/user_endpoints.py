@@ -71,8 +71,8 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     }
 
 
-@router.post("/refresh2")
-async def refresh_token2(request: Request, db: Session = Depends(get_db)):
+@router.post("/refresh")
+async def refresh_token(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     refresh_token = body.get("refresh_token")
     if not refresh_token:
@@ -110,4 +110,30 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
     db.add(user)
     db.commit()
     db.refresh(user)
+    return True
+
+@router.post('/display')
+def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    data = db.query(User.ID_uzytkownika, User.Username, User.Role, User.Last_login).all() # z bazy wyciągamy tylko wybrane kolumny, bez hasła
+    response_data = []
+    for row in data:
+        response_data.append({
+            'ID': row[0],
+            'Username': row[1],
+            'Role': row[2],
+            'Last login': row[3]
+        })
+    return response_data
+
+@router.post('/delete')
+def delete_users(term: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))): 
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+            detail=f'You are not an admin')
+    user = db.query(User).filter(User.Username == term).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'User {term} does not exist')
+    db.delete(user)
+    db.commit()
     return True
