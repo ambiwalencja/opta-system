@@ -14,10 +14,6 @@ def create_user(db: Session, request: UserBase):
         Created = datetime.now(),
         Last_modified = datetime.now(),
         Last_login = None
-        # ID_uzytkownika = 0 #? kto, admin? # to muszę wyciągnąć z access tokena - każde
-        # dwa tworzenia użytkownika (dwa endpointy) - jedno z backendu z passphrasem, a drugie z UI
-        # dependency - depends on - coś w autoryzacji - z access tokenu możemy wyczytać który to użytkownik
-        # EDIT - wykomentowałam to, bo przecież to jest ID tego rekordu, primary key, a nie id creatora, to się ustawia samo, a nie 
     )
     db.add(new_user)
     db.commit()
@@ -37,3 +33,10 @@ def update_last_login(db: Session, user: User):
     db.commit()
     db.refresh(user)
     return 
+
+def format_datetime(dt: datetime) -> str: # TODO: nie wiem, czy ta funkcja powinna być tutaj... a no i pytanie co do timezonów
+    if not dt:
+        return None
+    # Optional: Convert to local timezone - using from zoneinfo import ZoneInfo  # Python 3.9+
+    # local_dt = dt.astimezone(ZoneInfo("Europe/Warsaw"))  # or your desired timezone
+    return dt.strftime("%d.%m.%Y, %H:%M")
