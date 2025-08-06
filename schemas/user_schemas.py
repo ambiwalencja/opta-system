@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from pydantic.fields import Field
-# from typing import List
 from enum import Enum
 
 class RoleEnum(str, Enum):
@@ -23,3 +22,6 @@ class UserDisplay(BaseModel):
 class UserSignIn(BaseModel):
     username: str
     password: str
+
+class TokenRequest(BaseModel):
+    refresh_token: str
