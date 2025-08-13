@@ -27,6 +27,7 @@ class Pacjent(Base):
     Nr_domu = Column(Integer)
     Nr_mieszkania = Column(Integer)
     Kod_pocztowy = Column(String) # opcjonalny
+    Wiek = Column(Integer)
     Status_zawodowy = Column(String) 
     Stan_cywilny = Column(String)
     Wyksztalcenie = Column(String) # string czy int
