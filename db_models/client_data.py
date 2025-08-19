@@ -31,7 +31,7 @@ class Pacjent(Base):
     Status_zawodowy = Column(String) 
     Stan_cywilny = Column(String)
     Wyksztalcenie = Column(String) # string czy int
-    Plec = Column(Integer) # albo string
+    Plec = Column(String)
     Zrodlo_informacji = Column(String)
     Korzystanie_z_pomocy = Column(JSON)
     Placowka_kierujaca = Column(String)
