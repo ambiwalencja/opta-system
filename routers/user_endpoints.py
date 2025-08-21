@@ -129,14 +129,14 @@ def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depe
     return response_data
 
 @router.post('/delete')
-def delete_users(user_id: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))): 
+def delete_users(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))): 
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
-    user = db.query(User).filter(User.ID_uzytkownika == user_id).first()
+    user = db.query(User).filter(User.Username == username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'User with ID {user_id} does not exist')
+            detail=f'User with username {username} does not exist')
     db.delete(user)
     db.commit()
     return True
