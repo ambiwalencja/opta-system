@@ -67,6 +67,7 @@ def populate_possible_values(db: Session):
             "z innego źródła (podać jakie)": "input"
             }},
         {"Variable_ID": 7, "Variable_name": "Korzystanie_z_pomocy", "Variable_label": "Czy klient korzysta obecnie z pomocy następujących podmiotów?", "Possible_values": {
+            "nie korzysta": "checkbox",
             "ośrodek pomocy społecznej": "checkbox",
             "poradnia psych-pedagogiczna": "checkbox",
             "poradnia rodzinna": "checkbox",
