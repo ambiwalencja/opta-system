@@ -33,8 +33,11 @@ class Pacjent(Base):
     Wyksztalcenie = Column(String) # string czy int
     Plec = Column(String)
     Zrodlo_informacji = Column(String)
+    Zrodlo_informacji_inne = Column(String) # warunkowo
     Korzystanie_z_pomocy = Column(JSON)
+    Korzystanie_z_pomocy_inne = Column(String) # warunkowo
     Placowka_kierujaca = Column(String)
+    Placowka_kierujaca_inne = Column(String) # warunkowo
     Niebieska_karta = Column(Boolean)
     Niebieska_karta_inicjator = Column(String) # warunkowo 
     Grupa_robocza = Column(Boolean) # warunkowo 
@@ -48,8 +51,10 @@ class Pacjent(Base):
     Postepowanie_rodzinne = Column(Boolean)
     Liczba_dzieci = Column(Integer)
     Problemy = Column(JSON)
+    Problemy_inne = Column(String) # warunkowo
     Notatka_diagnoza_sytuacji = Column(String) # do decyzji czy tutaj czy przy wizycie
     Zaproponowane_wsparcie = Column(JSON)
+    Zaproponowane_wsparcie_inne = Column(String) # warunkowo
     Ewaluacja = Column(Boolean)
     Status_pacjenta = Column(String) # albo int
     Data_zakonczenia = Column(Date) # do decyzji czy tutaj czy przy wizycie

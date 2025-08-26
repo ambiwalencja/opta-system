@@ -162,7 +162,6 @@ WSPARCIE_MAP = {
 }
 
 
-
 def parse_php_array(php_string: str) -> list:
     """Extract numbers from PHP serialized array string."""
     # Find all numbers after s:1:" pattern
@@ -200,8 +199,11 @@ def transform_table_pacjenci(df: pd.DataFrame):
         'wyksztalcenie': 'Wyksztalcenie',
         'plec': 'Plec',
         'skadwie': 'Zrodlo_informacji',
+        'skadwieinne': 'Zrodlo_informacji_inne',
         'czykorzysta': 'Korzystanie_z_pomocy',
+        'czykorzystainne': 'Korzystanie_z_pomocy_inne',
         'ktokieruje': 'Placowka_kierujaca',
+        'ktokierujeinne': 'Placowka_kierujaca_inne',
         'karta': 'Niebieska_karta',
         'kartainicjator': 'Niebieska_karta_inicjator',
         'gruparobocza': 'Grupa_robocza',    
@@ -215,13 +217,14 @@ def transform_table_pacjenci(df: pd.DataFrame):
         'postepowanierod': 'Postepowanie_rodzinne',
         'czydzieci': 'Liczba_dzieci',
         'jakiproblem': 'Problemy',
+        'jakiprobleminne': 'Problemy_inne',
         'rodzajwsparcia': 'Zaproponowane_wsparcie',
+        'rodzajwsparciainne': 'Zaproponowane_wsparcie_inne',
         'zgoda': 'Ewaluacja',
         'status': 'Status_pacjenta',
         'data_zakonczenia': 'Data_zakonczenia',
 
         # nridklienta - gdzie to identyfikuje pacjenta? w wizytach id_pacjenta pasuje jako identyfikator
-        # skadwieinne, czykorzystainne, ktokierujeinne, jakiprobleminne, rodzajwsparciainne - tutaj będę musiała pomyśleć
         # sadowe, postępowanie - na razie nie przenosimy, stare zmienne
     }
     print("2")
@@ -260,7 +263,6 @@ def transform_table_pacjenci(df: pd.DataFrame):
     for col in boolean_columns:
         if col in df.columns:
             df[col] = df[col].map({1: True, 2: False, 0: None})
-# TODO: tutaj się zatrzymałam tutaj sprawdzić i kontynuować
     return df
 
 def transform_table_wizyty(df: pd.DataFrame):
