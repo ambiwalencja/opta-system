@@ -73,7 +73,9 @@ class WizytaIndywidualna(Base):
     Created = Column(DateTime)
     Data = Column(Date) # z tego można wziąć rok, miesiąc
     Last_modified = Column(DateTime)
-    Specjalista = Column(String) # albo Column(Int) ale moim zdaniem lepiej opisowo
+    Specjalista = Column(String) # specjalista/rodzaj wizyty TODO: może tutaj zmienić na
+    # Typ_wizyty = Column(String) - żeby było analogicznie do grup
+    # i trzeba będzie też do possible values dodać rodzaje wizyt indywidualnych (dodałam tylko nazwa jeszcze)
     Liczba_godzin = Column(Integer) # czy potrzebne?
     Notatka_diagnoza_sytuacji = Column(String) # do decyzji czy tutaj czy przy pacjencie
     Notatka_opis_sytuacji = Column(String)

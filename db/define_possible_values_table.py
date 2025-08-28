@@ -127,9 +127,21 @@ def populate_possible_values(db: Session):
             }},
         {"Variable_ID": 21, "Variable_name": "Typ_grupy", "Variable_label": "Typ grupy", "Possible_values": {
             "grupa wsparcia": "radio",
-            "warsztat / trening": "radio",
-            "grupa rozwojowa": "radio"
+            "grupa o charakterze rozwojowym": "radio",
+            "trening antystresowy": "radio",
+            "warsztat psychoedukacyjny": "radio"
             }},
+        {"Variable_ID": 22, "Variable_name": "Specjalista", "Variable_label": "Specjalista/rodzaj wizyty", "Possible_values": {
+            # TODO: tutaj zdecydowac jak to nazwaćs
+            "specjalista ds. przeciwdziałania przemocy w rodzinie": "radio",
+            "adwokat socjalny": "radio",
+            "psycholog - konsultacja diagnostyczna": "radio",
+            "psycholog - konsultacja rodzicielska": "radio",
+            "prawnik - konsultacja / porada prawna": "radio",
+            "psycholog/terapeuta - wsparcie": "radio",
+            "konsultacje do grupy wsparcia i do grupy rozwojowej": "radio"
+            }
+        }
     ]
 
     # Insert data

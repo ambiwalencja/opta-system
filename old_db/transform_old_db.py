@@ -23,9 +23,12 @@ def transform_imported_table(table_name: str, db: Session):
     else:
         raise ValueError(f"Unknown table name: {table_name}")
     filename = f"test_table_import_after_transform_{table_name}.csv"
-    with open(filename, 'w', newline='', encoding='utf-8') as f:
-        df.to_csv(f, index=False)
-        print(f"Transformed data saved to {f}")
+    try:
+        with open(filename, 'w', newline='', encoding='utf-8') as f:
+            df.to_csv(f, index=False)
+            print(f"Transformed data saved to {f}")
+    except Exception as e:
+        print(f"Error saving transformed data to {filename}: {e}")
     print("Transformed DataFrame:")
     print(df.head())
     return df
@@ -176,13 +179,37 @@ def transform_multiple_choice(df: pd.DataFrame, col: str, mapping: dict):
         )
     return df
 
+def transform_column_id_uzytkownika(user_column_in_pacjenci: pd.Series):
+    recoding_user_dict = {
+        'Aldona Żejmo-Kudelska Joanna Rossa': 'Aldona Żejmo-Kudelska',
+        'Marta Witek - Zegan ': 'Marta Witek',
+        'Marta Witek-Zegan': 'Marta Witek', # TODO: dopytać mamę, czy ma być samo Witek czy Witek-Zegan
+        'Katarzyna Przyborowska i Marlena Dałek': 'Katarzyna Przyborowska', # TODO" dopytać czy może zostać sama KP
+        'Monika krzemieniewska': 'Monika Krzemieniewska',
+        'Agnieszka Pawłowska-Frycowska': 'Agnieszka Pawłowska-Fryckowska',
+        'I.Rokita': 'Izabela Rokita',
+        'Iza Rokita': 'Izabela Rokita',
+        'I. Rokita': 'Izabela Rokita',
+        'Beata szymańska': 'Beata Szymańska',
+        'Krzemieniecka Monika': 'Monika Krzemieniewska',
+        'Monika Krzemieniecka': 'Monika Krzemieniewska'
+    }
+    return user_column_in_pacjenci.replace(recoding_user_dict)
+
+def replace_user_names_with_ids(user_column_in_pacjenci: pd.Series, df_users: pd.DataFrame):
+    # TODO: to można wykonać tylko jeśli mamy juz użytkowników w bazie danych, i mamy df z użytkownikami
+    # czyli do tej funkcji potrzebne dwa gotowe dataframe'y!
+    # no i uwaga na Username vs Imię i Nazwisko
+    lookup_series = df_users.set_index('Username')['ID_uzytkownika']
+    return user_column_in_pacjenci.map(lookup_series) # if doesn't match, will be NaN
 
 def transform_table_pacjenci(df: pd.DataFrame):
     # Rename columns to match new schema
     print("1")
     column_mapping = {
-        'id_pacjenta': 'ID_pacjenta',
-        'rejestrator': 'ID_uzytkownika',  # This will need to be mapped to the new user IDs
+        'nridklienta': 'ID_pacjenta', # INFO: uwaga, pacjenci są identyfikowani po tym numerze (przy wizytach np), nie po zmiennej id_pacjenta!
+        # pytanie, czy gdzieś jest uzywana zmienna id_pacjenta (która wygląda jak klucz główny w starej tabeli pacjenci)
+        'rejestrator': 'ID_uzytkownika',  # to jest imię i nazwisko wpisywane z ręki w starej bazie
         'data_zgloszenia': 'Data_zgloszenia',
         'imie': 'Imie',
         'nazwisko': 'Nazwisko',
@@ -223,9 +250,7 @@ def transform_table_pacjenci(df: pd.DataFrame):
         'zgoda': 'Ewaluacja',
         'status': 'Status_pacjenta',
         'data_zakonczenia': 'Data_zakonczenia',
-
-        # nridklienta - gdzie to identyfikuje pacjenta? w wizytach id_pacjenta pasuje jako identyfikator
-        # sadowe, postępowanie - na razie nie przenosimy, stare zmienne
+        # do usunięcia prawdopodobnie: 'id_pacjenta', 'data1konsultacji', 'sadowe', 'postępowanie' (te dwie ostatnie to stare zmienne)
     }
     print("2")
     df = df.rename(columns=column_mapping)
@@ -263,23 +288,47 @@ def transform_table_pacjenci(df: pd.DataFrame):
     for col in boolean_columns:
         if col in df.columns:
             df[col] = df[col].map({1: True, 2: False, 0: None})
+    
+    # recode specific columns
+    df['ID_uzytkownika'] = transform_column_id_uzytkownika(df['ID_uzytkownika'])
+    # TODO: przetestować to (no i zastanowić się jak z imieniem i nazwiskiem, i jak zamieniać je na id
+    # to znaczy w którym momencie w ogóle możemy to robić)
+    # aha i jeszcze trzeba obsłużyć "inne" to znaczy żeby się nie wywaliło, jeśli jakieś asdfgh będzie wpisane
+    # TODO: data zgłoszenia format!!!
     return df
 
 def transform_table_wizyty(df: pd.DataFrame):
-    pass
+    # TODO: zacząć od podzielenia na wizyty indywidualne (wartość 1) i grupowe (wartość 2) chociaż nie do końca
+    column_mapping = {
+        'id_pacjenta': 'ID_pacjenta',
+        'id_wizyty': 'ID_wizyty',
+        # brak 'ID_uzytkownika'!
+        'data_wizyty': 'Data',
+        'specjalista': 'Specjalista',
+        'liczba_godzin': 'Liczba_godzin',
+        'diagnoza_sytuacji': 'Notatka_diagnoza_sytuacji',
+        'opis_sytuacji': 'Notatka_opis_sytuacji',
+        'indywidualny_plan': 'Notatka_indywidualny_plan',
+        'rezultaty': 'Notatka_rezultaty',
+        'odeslanie_do_innych': 'Notatka_odeslanie_do_innych'
+    }
+    df = df.rename(columns=column_mapping)
+    # TODO: data wizyty format!!!
+    # TODO: tutaj skończyłam (patrz test.py)
+    return df
 
 def transform_table_groupvisits(df: pd.DataFrame):
-    pass
+    return df
 
 def transform_table_users(df: pd.DataFrame):
-    pass
+    return df
 
 # TODO: zastanowić się, czy może te tabele analogiczne się nie przydadzą, bo można one-hoty lepiej raportować
 def transform_table_czykorzysta(df: pd.DataFrame):
-    pass
+    return df
 
 def transform_table_jakiproblem(df: pd.DataFrame):
-    pass
+    return df
 
 def transform_table_rodzajwsparcia(df: pd.DataFrame):
-    pass
+    return df

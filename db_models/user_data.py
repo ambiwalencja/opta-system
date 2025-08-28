@@ -10,9 +10,10 @@ class User(Base):
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
     Last_login = Column(DateTime) # nullable musi być - wygląda na to, że na razie może pozostać tak jak jest, bo trzeba byłoby raczej ustawić nullable=false, chyba domyslnie jest nullable=true
-    Username = Column(String)
+    Username = Column(String) # TODO: czy to może być imię i nazwisko? jeśli nie, będziemy ich też potrzebowali
     Password = Column(String)
     Role = Column(String)
+    # TODO: dodać Status; rodzaje wizyt do wyboru?
 
     pacjenci = relationship("Pacjent", back_populates="uzytkownik")
     wizyty_indywidualne = relationship('WizytaIndywidualna', back_populates="uzytkownik")
