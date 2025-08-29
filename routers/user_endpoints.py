@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 import os
 from db.db_connect import get_db
-from schemas.user_schemas import UserBase, UserDisplay, UserSignIn
+from schemas.user_schemas import UserBase, UserDisplay, UserSignIn, TokenRequest
 from db_models.user_data import User
 from utils import user_functions
 from auth.hashing import Hash
@@ -72,9 +72,8 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 
 
 @router.post("/refresh")
-async def refresh_token(request: Request, db: Session = Depends(get_db)):
-    body = await request.json()
-    refresh_token = body.get("refresh_token")
+async def refresh_token(data: TokenRequest, db: Session = Depends(get_db)):
+    refresh_token = data.refresh_token
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
 
@@ -112,8 +111,11 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
     db.refresh(user)
     return True
 
-@router.post('/display')
+@router.get('/display')
 def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+            detail=f'You are not an admin')
     data = db.query(User.ID_uzytkownika, User.Username, User.Role, User.Created, User.Last_login).all()
     response_data = []
     for row in data:
@@ -127,14 +129,14 @@ def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depe
     return response_data
 
 @router.post('/delete')
-def delete_users(term: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))): 
+def delete_users(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))): 
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
-    user = db.query(User).filter(User.Username == term).first()
+    user = db.query(User).filter(User.Username == username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'User {term} does not exist')
+            detail=f'User with username {username} does not exist')
     db.delete(user)
     db.commit()
     return True
