@@ -28,18 +28,15 @@ def get_user_by_username(db: Session, username: str):
     return user
 
 def update_last_login(db: Session, user: User):
-    user.Last_login = datetime.now() # to jest utc
+    user.Last_login = datetime.now()
     db.add(user)
     db.commit()
     db.refresh(user)
     return 
 
-def format_datetime(dt: datetime) -> str:
+def format_datetime(dt: datetime) -> str: # TODO: nie wiem, czy ta funkcja powinna być tutaj... a no i pytanie co do timezonów
     if not dt:
         return None
     # Optional: Convert to local timezone - using from zoneinfo import ZoneInfo  # Python 3.9+
     # local_dt = dt.astimezone(ZoneInfo("Europe/Warsaw"))  # or your desired timezone
-    # TODO: dodać konwersję na czas lokalny - ale jak się wyklaruje, jak obsługujemy datę - Wojtek sprawdzi, jak mu będzie wygodnie do wyświetlania daty na froncie
-    # nie konwertować czasu  w kodzie, tylko wyciągać z zegara maszyny, na której backend stoi - to zrobić w update tiem i w create user
-    # jeśli będzie taka funkcja wykorzystaywana w innych schemach też, to przenieść do osobnego pliku
     return dt.strftime("%d.%m.%Y, %H:%M")

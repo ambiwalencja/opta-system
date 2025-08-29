@@ -6,4 +6,3 @@ __pycache__
 *.json
 archive/
 test.py
-*.csv
