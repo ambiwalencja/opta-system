@@ -4,14 +4,33 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 from sqlalchemy.schema import CreateSchema
+import json
 
 if os.name == "nt":
     load_dotenv()
 
 DATABASE_URL = os.environ.get('DB_CONNECTION_STRING')
-engine = create_engine(DATABASE_URL)
+
+# A function to handle the JSON serialization
+def json_serializer(obj):
+    # This ensures that non-ASCII characters are not escaped
+    return json.dumps(obj, ensure_ascii=False)
+
+# A function to handle the JSON deserialization (optional but good practice)
+def json_deserializer(obj):
+    return json.loads(obj)
+
+# Create the SQLAlchemy engine with the custom serializers
+engine = create_engine(
+    DATABASE_URL,
+    json_serializer=json_serializer,
+    json_deserializer=json_deserializer
+)
+
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
 Base = declarative_base()
+
 
 def get_db():
     db = SessionLocal()
