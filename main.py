@@ -6,6 +6,8 @@ from db import db_connect
 from db_models import user_data, client_data, config
 from routers import user_endpoints, client_endpoints, config_endpoints
 from old_db import old_db_endpoints
+from old_db.old_db_connect import initialize_old_db
+
 
 # uvicorn main:app --reload
 # http://127.0.0.1:8000/docs
@@ -37,7 +39,10 @@ app.add_middleware(
 app.include_router(user_endpoints.router)
 app.include_router(client_endpoints.router)
 app.include_router(config_endpoints.router)
-app.include_router(old_db_endpoints.router)
+old_db_enabled = os.getenv("OLD_DB_MODE", "false").lower() == "true"
+if old_db_enabled:
+    initialize_old_db()
+    app.include_router(old_db_endpoints.router)
 
 @app.get("/")
 def root():
