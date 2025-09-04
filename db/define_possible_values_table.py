@@ -131,17 +131,25 @@ def populate_possible_values(db: Session):
             "trening antystresowy": "radio",
             "warsztat psychoedukacyjny": "radio"
             }},
-        {"Variable_ID": 22, "Variable_name": "Specjalista", "Variable_label": "Specjalista/rodzaj wizyty", "Possible_values": {
-            # TODO: tutaj zdecydowac jak to nazwaćs
+        
+        {"Variable_ID": 22, "Variable_name": "Typ_wizyty", "Variable_label": "Typ wizyty", "Possible_values": {
             "specjalista ds. przeciwdziałania przemocy w rodzinie": "radio",
             "adwokat socjalny": "radio",
             "psycholog - konsultacja diagnostyczna": "radio",
             "psycholog - konsultacja rodzicielska": "radio",
             "prawnik - konsultacja / porada prawna": "radio",
             "psycholog/terapeuta - wsparcie": "radio",
-            "konsultacje do grupy wsparcia i do grupy rozwojowej": "radio"
-            }
-        }
+            "konsultacje do grupy wsparcia i do grupy rozwojowej": "radio",
+            'indywidualne konsultacje w zespole psycholog/prawnik': "radio"
+            }},
+
+        {"Variable_ID": 23, "Variable_name": "Specjalista", "Variable_label": "Specjalista/rodzaj wizyty", "Possible_values": {
+            "specjalista ds. przeciwdziałania przemocy w rodzinie": "checkbox",
+            "adwokat socjalny": "checkbox",
+            "psycholog": "checkbox",
+            "prawnik": "checkbox",
+            "administracja": "checkbox"
+            }}
     ]
 
     # Insert data

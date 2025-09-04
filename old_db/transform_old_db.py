@@ -2,6 +2,7 @@ import pandas as pd
 from old_db.data_import import import_table_to_dataframe
 import re
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
 
 def transform_imported_table(table_name: str, db: Session):
@@ -183,8 +184,8 @@ def transform_column_id_uzytkownika(user_column_in_pacjenci: pd.Series):
     recoding_user_dict = {
         'Aldona Żejmo-Kudelska Joanna Rossa': 'Aldona Żejmo-Kudelska',
         'Marta Witek - Zegan ': 'Marta Witek',
-        'Marta Witek-Zegan': 'Marta Witek', # TODO: dopytać mamę, czy ma być samo Witek czy Witek-Zegan
-        'Katarzyna Przyborowska i Marlena Dałek': 'Katarzyna Przyborowska', # TODO" dopytać czy może zostać sama KP
+        'Marta Witek-Zegan': 'Marta Witek',
+        'Katarzyna Przyborowska i Marlena Dałek': 'Katarzyna Przyborowska',
         'Monika krzemieniewska': 'Monika Krzemieniewska',
         'Agnieszka Pawłowska-Frycowska': 'Agnieszka Pawłowska-Fryckowska',
         'I.Rokita': 'Izabela Rokita',
@@ -194,14 +195,17 @@ def transform_column_id_uzytkownika(user_column_in_pacjenci: pd.Series):
         'Krzemieniecka Monika': 'Monika Krzemieniewska',
         'Monika Krzemieniecka': 'Monika Krzemieniewska'
     }
+    # TODO: upewnić się, czy inne wartości pozostaną niezmienione
     return user_column_in_pacjenci.replace(recoding_user_dict)
 
 def replace_user_names_with_ids(user_column_in_pacjenci: pd.Series, df_users: pd.DataFrame):
-    # TODO: to można wykonać tylko jeśli mamy juz użytkowników w bazie danych, i mamy df z użytkownikami
-    # czyli do tej funkcji potrzebne dwa gotowe dataframe'y!
-    # no i uwaga na Username vs Imię i Nazwisko
-    lookup_series = df_users.set_index('Username')['ID_uzytkownika']
-    return user_column_in_pacjenci.map(lookup_series) # if doesn't match, will be NaN
+    if df_users is None or df_users.empty:
+        raise HTTPException(
+            status_code=400,
+            detail="No user data"
+        )
+    lookup_series = df_users.set_index('Name')['ID_uzytkownika']
+    return user_column_in_pacjenci.map(lookup_series) # if doesn't match, will be NaN # maybe should add .fillna(-1))
 
 def transform_table_pacjenci(df: pd.DataFrame):
     # Rename columns to match new schema
@@ -313,8 +317,6 @@ def transform_table_wizyty(df: pd.DataFrame):
         'odeslanie_do_innych': 'Notatka_odeslanie_do_innych'
     }
     df = df.rename(columns=column_mapping)
-    # TODO: data wizyty format!!!
-    # TODO: tutaj skończyłam (patrz test.py)
     return df
 
 def transform_table_groupvisits(df: pd.DataFrame):
@@ -323,7 +325,6 @@ def transform_table_groupvisits(df: pd.DataFrame):
 def transform_table_users(df: pd.DataFrame):
     return df
 
-# TODO: zastanowić się, czy może te tabele analogiczne się nie przydadzą, bo można one-hoty lepiej raportować
 def transform_table_czykorzysta(df: pd.DataFrame):
     return df
 

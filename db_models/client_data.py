@@ -4,7 +4,7 @@
 # https://medium.com/@shubhkarmanrathore/comprehensive-guide-to-schema-design-in-python-with-sqlalchemy-adding-validations-and-constraints-ba40c579a91b tutaj tutek z walidacją danych (np do emaila, telefonu)
 
 
-from sqlalchemy import Column, Integer, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData
+from sqlalchemy import Column, Integer, Numeric, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData
 from sqlalchemy.orm import relationship
 from db.db_connect import Base
 
@@ -68,15 +68,12 @@ class WizytaIndywidualna(Base):
     __table_args__ = {'schema': 'client_data'}
     ID_wizyty = Column(Integer, primary_key=True)
     ID_pacjenta = Column(Integer, ForeignKey('client_data.pacjenci.ID_pacjenta')) 
-    # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika))
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Created = Column(DateTime)
     Data = Column(Date) # z tego można wziąć rok, miesiąc
     Last_modified = Column(DateTime)
-    Specjalista = Column(String) # specjalista/rodzaj wizyty TODO: może tutaj zmienić na
-    # Typ_wizyty = Column(String) - żeby było analogicznie do grup
-    # i trzeba będzie też do possible values dodać rodzaje wizyt indywidualnych (dodałam tylko nazwa jeszcze)
-    Liczba_godzin = Column(Integer) # czy potrzebne?
+    Typ_wizyty = Column(String) # konsultacja prawna, konsultacja psychologiczna, wsparcie psychologiczne etc.
+    Liczba_godzin = Column(Numeric(3, 1))
     Notatka_diagnoza_sytuacji = Column(String) # do decyzji czy tutaj czy przy pacjencie
     Notatka_opis_sytuacji = Column(String)
     Notatka_indywidualny_plan = Column(String)
@@ -90,16 +87,15 @@ class Grupa(Base):
     __tablename__ = "grupy"
     __table_args__ = {'schema': 'client_data'}
     ID_grupy = Column(Integer, primary_key=True)
-    # ID_uzytkownika = Column(Integer, ForeignKey(User.ID_uzytkownika)) # ID użytkownika, który dodał grupę do bazy danych
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Nazwa_grupy = Column(String)
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
-    Data_rozpoczecia = Column(Date) # ? czy to będzie po prostu data pierwszego spotkania
-    Data_zakonczenia = Column(Date) # ? jw - data ostatniego
-    Prowadzacy = Column(String) # Lista ID uzytkownikow # TODO: czy to też powinno być jakoś obsłużone w formie foreign keys? tutaj byłaby relacja many to many
-    Liczba_godzin = Column(Integer) # czy potrzebne? to może być suma czasu trwania poszczególnych spotkań
+    Prowadzacy = Column(JSON) # Lista ID uzytkownikow # TODO: czy to też powinno być jakoś obsłużone w formie foreign keys? tutaj byłaby relacja many to many
+    Liczba_spotkań = Column(Integer)
+    Liczba_godzin = Column(Numeric(3, 1)) # opcjonalne, na razie zostawmy
     Typ_grupy = Column(String) # warsztat, czy grupa wsparcia, czy trening, etc
+    Rezultaty = Column(String)
 
     spotkania_grupowe = relationship('SpotkanieGrupowe', back_populates='grupa')
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
@@ -111,15 +107,14 @@ class SpotkanieGrupowe(Base):
     __table_args__ = {'schema': 'client_data'}
     ID_spotkania = Column(Integer, primary_key=True)
     ID_grupy = Column(Integer, ForeignKey('client_data.grupy.ID_grupy'))
-    # ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika')) # TODO: tak? czy rejestrują je użytkownicy?
+    ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
     Data = Column(Date)
-    Prowadzacy = Column(String) # ?
-    Liczba_godzin = Column(Integer)
-    Obecni_uczestnicy = Column(Integer) # lista ID pacjentow
+    Prowadzacy = Column(JSON) # opcjonalne, być może jest to zawsze to samo co przy grupie
+    Liczba_godzin = Column(Numeric(3, 1))
+    Obecni_uczestnicy = Column(JSON) # lista ID pacjentow
     Notatka_przebieg = Column(String)
-    Notatka_rezultaty = Column(String)
 
     grupa = relationship('Grupa', back_populates='spotkania_grupowe')
     

@@ -34,12 +34,12 @@ def create_pacjent(db: Session, pacjent_data: CreatePacjent):
     return new_pacjent
 
 def validate_choice(db: Session, variable_name: str, chosen_value: str):
-    pv = db.query(PossibleValues).filter(PossibleValues.Variable_name == variable_name).first()
-    if not pv:
+    variable_with_pv = db.query(PossibleValues).filter(PossibleValues.Variable_name == variable_name).first()
+    if not variable_with_pv:
         return  # no restriction for this field → skip validation
     
-    if chosen_value not in pv.Possible_values:  # dict keys are the valid values
+    if chosen_value not in variable_with_pv.Possible_values:  # dict keys are the valid values
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid value '{chosen_value}' for {variable_name}. Allowed: {list(pv.Possible_values.keys())}"
+            detail=f"Invalid value '{chosen_value}' for {variable_name}. Allowed: {list(variable_with_pv.Possible_values.keys())}"
         )

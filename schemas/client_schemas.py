@@ -1,6 +1,7 @@
 from typing import Optional, List, Any
 from datetime import date, datetime
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
+import re
 
 class CreatePacjent(BaseModel):
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika") # "..." means it's required
@@ -66,6 +67,48 @@ class CreatePacjent(BaseModel):
                 )
         return self
     
+    @field_validator('telefon')
+    def validate_phone(cls, v):
+        if not re.match(r'^\+48[0-9]{9}$', v): # tylko polskie, tylko komórkowe, bez innych znaków
+            # TODO: użytkownik ma wpisywać tylko cyfry
+            # bez kierunkowego niech będzie na razie
+            # ogólny r'^\+?[1-9][0-9]{8,14}$'
+            raise ValueError('Invalid phone number format')
+        return v
+    
+    @field_validator('email')
+    def validate_email(cls, v):
+        if v is not None and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', v):
+            raise ValueError('Invalid email format')
+        return v
+    
+    # optional other validations
+    # @field_validator('kod_pocztowy')
+    # def validate_postal_code(cls, v):
+    #     if v is not None and not re.match(r'^\d{2}-\d{3}$', v):
+    #         raise ValueError('Invalid postal code format, expected XX-XXX')
+    #     return v
+    
+    # @field_validator('wiek')
+    # def validate_age(cls, v):
+    #     if v < 0 or v > 120:
+    #         raise ValueError('Age must be between 0 and 120')
+    #     return v
+    
+    # @field_validator('nr_domu', 'nr_mieszkania')
+    # def validate_house_apartment_number(cls, v):
+    #     if v is not None and v <= 0:
+    #         raise ValueError('House and apartment numbers must be positive integers')
+    #     return v
+    
+    # @field_validator('data_ostatniej_wizyty', 'data_zakonczenia')
+    # def validate_dates(cls, v, info):
+    #     if v is not None and v > date.today():
+    #         raise ValueError(f"{info.field_name} cannot be in the future")
+    #     return v
+    
+
+
     class Config():
         from_attributes = True # orm_mode = True - deprecated in v2, changed to from_attributes
         validate_by_name=True

@@ -8,9 +8,12 @@ from fastapi import HTTPException, status
 
 def create_user(db: Session, request: UserBase):
     new_user = User(
+        Full_name = request.full_name,
         Username = request.username,
         Password = Hash.bcrypt(request.password),
         Role = request.role,
+        Specjalista = request.specjalista,
+        Status = request.status, # może to być, tylko na froncie nie będzie używane
         Created = datetime.now(),
         Last_modified = datetime.now(),
         Last_login = None
