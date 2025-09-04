@@ -1,5 +1,7 @@
 from db_models.config import PossibleValues
 from sqlalchemy.orm.session import Session
+from datetime import datetime
+import json
 
 def populate_possible_values(db: Session):
 
@@ -65,6 +67,7 @@ def populate_possible_values(db: Session):
             "z innego źródła (podać jakie)": "input"
             }},
         {"Variable_ID": 7, "Variable_name": "Korzystanie_z_pomocy", "Variable_label": "Czy klient korzysta obecnie z pomocy następujących podmiotów?", "Possible_values": {
+            "nie korzysta": "checkbox",
             "ośrodek pomocy społecznej": "checkbox",
             "poradnia psych-pedagogiczna": "checkbox",
             "poradnia rodzinna": "checkbox",
@@ -85,38 +88,6 @@ def populate_possible_values(db: Session):
             "ta sama organizacja pozarządowa": "radio",
             "z własnej inicjatywy": "radio",
             "inne - jakie?": "input"
-            }},
-        {"Variable_ID": 9, "Variable_name": "Niebieska_karta", "Variable_label": "Czy jest realizowana Procedura Niebieskiej Karty?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
-        {"Variable_ID": 10, "Variable_name": "Grupa_robocza", "Variable_label": "Czy jest grupa robocza?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
-        {"Variable_ID": 11, "Variable_name": "Plan_pomocy", "Variable_label": "Czy jest indywidualny plan pomocy?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
-        {"Variable_ID": 12, "Variable_name": "Narzedzia_prawne", "Variable_label": "Czy zastosowano prawne narzędzia izolacji osoby stosującej przemoc od pokrzywdzonych?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
-        {"Variable_ID": 13, "Variable_name": "Zawiadomienie", "Variable_label": "Czy złożono zawiadomienie o przestępstwie?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
-        {"Variable_ID": 14, "Variable_name": "Postepowanie_cywilne", "Variable_label": "Czy toczy się postępowanie przed sądem cywilnym?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
-        {"Variable_ID": 15, "Variable_name": "Postepowanie_karne", "Variable_label": "Czy toczy się postępowanie przed sądem karnym?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
-        {"Variable_ID": 16, "Variable_name": "Postepowanie_rodzinne", "Variable_label": "Czy toczy się postępowanie przed sądem rodzinnym?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
             }},
         {"Variable_ID": 17, "Variable_name": "Problemy", "Variable_label": "Z jakim problemem klient zgłosił się do poradni?", "Possible_values": {
             "przemoc fizyczna": "checkbox",
@@ -146,10 +117,6 @@ def populate_possible_values(db: Session):
             "inne - grupa o charakterze rozwojowym.": "checkbox",
             "inne - jakie?": "input"
             }},
-        {"Variable_ID": 19, "Variable_name": "Ewaluacja", "Variable_label": "Czy klient wyraził zgodę na udział w badaniu ewaluacyjnym?", "Possible_values": {
-            "Tak": "radio",
-            "Nie": "radio"
-            }},
         {"Variable_ID": 20, "Variable_name": "Status_pacjenta", "Variable_label": "Status klienta w organizacji:", "Possible_values": {
             "przekierowanie do innej placówki": "radio",
             "aktywny, klient w kontakcie": "radio",
@@ -160,18 +127,28 @@ def populate_possible_values(db: Session):
             }},
         {"Variable_ID": 21, "Variable_name": "Typ_grupy", "Variable_label": "Typ grupy", "Possible_values": {
             "grupa wsparcia": "radio",
-            "warsztat / trening": "radio",
-            "grupa rozwojowa": "radio"
+            "grupa o charakterze rozwojowym": "radio",
+            "trening antystresowy": "radio",
+            "warsztat psychoedukacyjny": "radio"
             }},
+        {"Variable_ID": 22, "Variable_name": "Specjalista", "Variable_label": "Specjalista/rodzaj wizyty", "Possible_values": {
+            # TODO: tutaj zdecydowac jak to nazwaćs
+            "specjalista ds. przeciwdziałania przemocy w rodzinie": "radio",
+            "adwokat socjalny": "radio",
+            "psycholog - konsultacja diagnostyczna": "radio",
+            "psycholog - konsultacja rodzicielska": "radio",
+            "prawnik - konsultacja / porada prawna": "radio",
+            "psycholog/terapeuta - wsparcie": "radio",
+            "konsultacje do grupy wsparcia i do grupy rozwojowej": "radio"
+            }
+        }
     ]
 
     # Insert data
     for item in data:
         possible_value = PossibleValues(**item)
+        possible_value.Last_modified = datetime.now()
         db.add(possible_value)
-
+    
     db.commit()
     db.close()
-
-# Call the function to populate the table
-# populate_possible_values()

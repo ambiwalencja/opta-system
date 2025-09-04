@@ -27,13 +27,17 @@ class Pacjent(Base):
     Nr_domu = Column(Integer)
     Nr_mieszkania = Column(Integer)
     Kod_pocztowy = Column(String) # opcjonalny
+    Wiek = Column(Integer)
     Status_zawodowy = Column(String) 
     Stan_cywilny = Column(String)
     Wyksztalcenie = Column(String) # string czy int
-    Plec = Column(Integer) # albo string
+    Plec = Column(String)
     Zrodlo_informacji = Column(String)
+    Zrodlo_informacji_inne = Column(String) # warunkowo
     Korzystanie_z_pomocy = Column(JSON)
+    Korzystanie_z_pomocy_inne = Column(String) # warunkowo
     Placowka_kierujaca = Column(String)
+    Placowka_kierujaca_inne = Column(String) # warunkowo
     Niebieska_karta = Column(Boolean)
     Niebieska_karta_inicjator = Column(String) # warunkowo 
     Grupa_robocza = Column(Boolean) # warunkowo 
@@ -47,8 +51,10 @@ class Pacjent(Base):
     Postepowanie_rodzinne = Column(Boolean)
     Liczba_dzieci = Column(Integer)
     Problemy = Column(JSON)
+    Problemy_inne = Column(String) # warunkowo
     Notatka_diagnoza_sytuacji = Column(String) # do decyzji czy tutaj czy przy wizycie
     Zaproponowane_wsparcie = Column(JSON)
+    Zaproponowane_wsparcie_inne = Column(String) # warunkowo
     Ewaluacja = Column(Boolean)
     Status_pacjenta = Column(String) # albo int
     Data_zakonczenia = Column(Date) # do decyzji czy tutaj czy przy wizycie
@@ -67,7 +73,9 @@ class WizytaIndywidualna(Base):
     Created = Column(DateTime)
     Data = Column(Date) # z tego można wziąć rok, miesiąc
     Last_modified = Column(DateTime)
-    Specjalista = Column(String) # albo Column(Int) ale moim zdaniem lepiej opisowo
+    Specjalista = Column(String) # specjalista/rodzaj wizyty TODO: może tutaj zmienić na
+    # Typ_wizyty = Column(String) - żeby było analogicznie do grup
+    # i trzeba będzie też do possible values dodać rodzaje wizyt indywidualnych (dodałam tylko nazwa jeszcze)
     Liczba_godzin = Column(Integer) # czy potrzebne?
     Notatka_diagnoza_sytuacji = Column(String) # do decyzji czy tutaj czy przy pacjencie
     Notatka_opis_sytuacji = Column(String)
