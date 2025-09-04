@@ -140,3 +140,18 @@ def delete_users(username: str, db: Session = Depends(get_db), current_user: Use
     db.delete(user)
     db.commit()
     return True
+
+@router.post('/deactivate')
+def deactivate_user(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+            detail=f'You are not an admin')
+    user = db.query(User).filter(User.Username == username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'User with username {username} does not exist')
+    user.Status = 'inactive'
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return True
