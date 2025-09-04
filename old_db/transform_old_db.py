@@ -295,8 +295,10 @@ def transform_table_pacjenci(df: pd.DataFrame):
     
     # recode specific columns
     df['ID_uzytkownika'] = transform_column_id_uzytkownika(df['ID_uzytkownika'])
-    
-    # TODO: przetestować to
+    # TODO: przetestować to (no i zastanowić się jak z imieniem i nazwiskiem, i jak zamieniać je na id
+    # to znaczy w którym momencie w ogóle możemy to robić)
+    # aha i jeszcze trzeba obsłużyć "inne" to znaczy żeby się nie wywaliło, jeśli jakieś asdfgh będzie wpisane
+    # TODO: data zgłoszenia format!!!
     return df
 
 def transform_table_wizyty(df: pd.DataFrame):
