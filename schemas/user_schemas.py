@@ -32,6 +32,8 @@ class UserDisplay(BaseModel):
     full_name: str = Field(alias='Full_name', serialization_alias='full_name')
     username: str = Field(alias='Username', serialization_alias='username')
     role: str = Field(alias='Role', serialization_alias='role')
+    specjalista: list[str] = Field(alias='Specjalista', serialization_alias='specjalista')
+    status: str = Field(alias='Status', serialization_alias='status')
     class Config(): 
         from_attributes = True # to robi, że klasa UserDisplay rozumie, czyta obiekty sqlalchemy i jest w stanie zmapować na jsona
         # bez tego trzeba byłoby podawać dane w postaci dicta, jsona, a tak można 

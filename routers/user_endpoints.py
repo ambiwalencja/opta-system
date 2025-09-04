@@ -51,6 +51,7 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
         'token_type': 'bearer',
         'user_id': user.ID_uzytkownika,
         'username': user.Username,
+        'full_name': user.Full_name,
         'role': user.Role
     }
 
@@ -65,6 +66,7 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     refresh_token = create_refresh_token(data={"username": user.Username})
     
     return {
+        'full_name': user.Full_name,
         'access_token': access_token,
         "refresh_token": refresh_token,
         'token_type': 'bearer'
@@ -116,15 +118,18 @@ def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depe
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
-    data = db.query(User.ID_uzytkownika, User.Username, User.Role, User.Created, User.Last_login).all()
+    data = db.query(User.ID_uzytkownika, User.Username, User.Full_name, User.Specjalista, User.Role, User.Created, User.Last_login, User.Status).all()
     response_data = []
     for row in data:
         response_data.append({
             'ID': row[0],
             'Username': row[1],
-            'Role': row[2],
-            'Created': user_functions.format_datetime(row[3]),
-            'Last login': user_functions.format_datetime(row[4])
+            'Full name': row[2],
+            'Specjalista': row[3],
+            'Role': row[4],
+            'Created': user_functions.format_datetime(row[5]),
+            'Last login': user_functions.format_datetime(row[6]),
+            'Status': row[7]
         })
     return response_data
 
