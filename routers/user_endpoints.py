@@ -54,6 +54,7 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
         'full_name': user.Full_name,
         'role': user.Role
     }
+# TODO: kiedy używać response model, a kiedy takiego returna w diccie?
 
 @router.post('/login_form') # do testowania, do autoryzacji w docsach
 def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -160,3 +161,46 @@ def deactivate_user(username: str, db: Session = Depends(get_db), current_user: 
     db.commit()
     db.refresh(user)
     return True
+
+from fastapi import UploadFile, File
+from old_db.data_import import import_users_from_csv_simple
+
+@router.post("/import-csv")
+async def import_users_from_file( # TODO: dowiedzieć się, czemu async
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Save uploaded file temporarily
+        temp_file = f"temp_{file.filename}"
+        with open(temp_file, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # Process the file
+        users = import_users_from_csv_simple(temp_file)
+        
+        # Import users to database
+        results = {
+            "success": 0,
+            "errors": []
+        }
+        
+        for user in users:
+            try:
+                create_user(db, user)
+                results["success"] += 1
+            except Exception as e:
+                results["errors"].append(f"Error creating user {user.username}: {str(e)}")
+        
+        # Clean up
+        import os
+        os.remove(temp_file)
+        
+        return results
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error processing file: {str(e)}"
+        )

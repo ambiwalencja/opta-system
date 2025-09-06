@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from schemas.client_schemas import CreatePacjent
 from utils.client_functions import create_pacjent
+# from utils.user_functions import create_user
 from datetime import datetime
 
 
@@ -18,6 +19,73 @@ def import_table_to_dataframe(table_name: str, db: Session):
         return None
 
  
+def import_from_csv(file_path: str):
+    try:
+        df = pd.read_csv(file_path)
+        print("Successfully loaded data from CSV! ⚙️")
+        print(df.head())
+        return df
+    except Exception as e:
+        print(f"Error loading data from CSV: {e}")
+        return None
+
+from schemas.user_schemas import UserBase, RoleEnum, StatusEnum
+
+def import_users_from_csv_complex(file_path: str) -> list[UserBase]:
+    """Import users from CSV file and convert to UserBase objects.
+    This is iterative and handles errors in more detail."""
+    try:
+        # Read CSV file
+        df = pd.read_csv(file_path)
+        
+        # Validate required columns
+        required_columns = {'full_name', 'username', 'password', 'role', 'specjalista'}
+        missing_columns = required_columns - set(df.columns)
+        if missing_columns:
+            raise ValueError(f"Missing required columns: {missing_columns}")
+
+        users = []
+        for index, row in df.iterrows():
+            try:
+                # Convert string of specializations to list
+                specjalista = [s.strip() for s in str(row['specjalista']).split(',')]
+                
+                # Create UserBase object with validation
+                user = UserBase(
+                    full_name=row['full_name'],
+                    username=row['username'],
+                    password=row['password'],  # Note: password should be hashed
+                    role=row['role'],
+                    status=row.get('status', 'active'),  # Default to active if not provided
+                    specjalista=specjalista
+                )
+                users.append(user)
+                
+            except Exception as e:
+                print(f"Error processing row {index}: {str(e)}")
+                continue
+                
+        return users
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error reading CSV file: {str(e)}"
+        )
+
+def import_users_from_csv_simple(file_path: str) -> list[UserBase]:
+    """Import users from CSV file and convert to UserBase objects.
+    This is vertorized and handles errors automatically."""
+    df = pd.read_csv(file_path)
+    
+    # Vectorized operation on entire column
+    df['specjalista'] = df['specjalista'].str.split(',').str.strip()
+    
+    # Convert entire DataFrame to list of dicts at once
+    users_data = df.to_dict('records')
+    
+    # List comprehension for conversion
+    return [UserBase(**user_data) for user_data in users_data]
 
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
     if df is None or df.empty:
