@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 from sqlalchemy.schema import CreateSchema
 import json
 
-if os.name == "nt":
-    load_dotenv()
+# if os.name == "nt":
+#     load_dotenv()
+load_dotenv()  # Load environment variables from .env file
 
 DATABASE_URL = os.environ.get('DB_CONNECTION_STRING')
 

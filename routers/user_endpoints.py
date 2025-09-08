@@ -3,12 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 import os
 from db.db_connect import get_db
-from schemas.user_schemas import UserBase, UserDisplay, UserSignIn, TokenRequest
+from schemas.user_schemas import UserBase, UserDisplay, UserSignIn, TokenRequest, RoleEnum, StatusEnum
 from db_models.user_data import User
+from db_models.config import PossibleValues
 from utils import user_functions
 from auth.hashing import Hash
 from auth.oauth2 import create_access_token, create_refresh_token, get_current_user
 from auth.oauth2 import get_user_from_token_raw, get_user_from_token
+from typing import Optional
 
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get('REFRESH_TOKEN_EXPIRE_DAYS'))
 REFRESH_TOKEN_EXPIRE_SECONDS = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
@@ -119,7 +121,14 @@ def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depe
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
-    data = db.query(User.ID_uzytkownika, User.Username, User.Full_name, User.Specjalista, User.Role, User.Created, User.Last_login, User.Status).all()
+    data = db.query(User.ID_uzytkownika, 
+                    User.Username, 
+                    User.Full_name, 
+                    User.Specjalista, 
+                    User.Role, 
+                    User.Created, 
+                    User.Last_login, 
+                    User.Status).all()
     response_data = []
     for row in data:
         response_data.append({
@@ -161,6 +170,76 @@ def deactivate_user(username: str, db: Session = Depends(get_db), current_user: 
     db.commit()
     db.refresh(user)
     return True
+
+@router.post('/activate')
+def activate_user(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+            detail=f'You are not an admin')
+    user = db.query(User).filter(User.Username == username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'User with username {username} does not exist')
+    user.Status = 'active'
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return True
+
+@router.post("/update")
+async def update_user_info(
+    username: str, 
+    full_name: Optional[str] = None,
+    specjalista: Optional[list[str]] = None,
+    role: Optional[str] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: UserSignIn = Depends(get_user_from_token("access_token"))
+):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+            detail=f'You are not an admin')
+    
+    await user_functions.validate_user_update_data(db, role, status, specjalista)
+    
+    user = db.query(User).filter(User.Username == username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'User with username {username} does not exist')
+    if full_name:
+        user.Full_name = full_name
+    if specjalista:
+        user.Specjalista = specjalista
+    if role:
+        user.Role = role
+    if status:
+        user.Status = status
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return True
+
+@router.get("/valid-values")
+async def get_valid_values(
+    db: Session = Depends(get_db),
+    current_user: UserSignIn = Depends(get_user_from_token("access_token"))
+):
+    if current_user.Role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='You are not an admin'
+        )
+    # TODO: specjalista - pobieranie wartości nie działa - sprawdzić czemu
+    # Get specialist types from possible_values table
+    specialist_types = db.query(PossibleValues)\
+        .filter(PossibleValues.Variable_name == "Specjalista")\
+        .first()
+
+    return {
+        "roles": [r.value for r in RoleEnum],
+        "statuses": [s.value for s in StatusEnum],
+        "specialist_types": list(specialist_types.Possible_values.keys()) if specialist_types else []
+    }
 
 from fastapi import UploadFile, File
 from old_db.data_import import import_users_from_csv_simple

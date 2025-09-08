@@ -1,10 +1,13 @@
 
 from db_models.user_data import User
-from schemas.user_schemas import UserBase
+from schemas.user_schemas import UserBase, RoleEnum, StatusEnum
 from sqlalchemy.orm.session import Session
 from auth.hashing import Hash
 from datetime import datetime
 from fastapi import HTTPException, status
+from db_models.config import PossibleValues
+from typing import Optional
+
 
 def create_user(db: Session, request: UserBase):
     new_user = User(
@@ -46,3 +49,43 @@ def format_datetime(dt: datetime) -> str:
     # nie konwertować czasu  w kodzie, tylko wyciągać z zegara maszyny, na której backend stoi - to zrobić w update tiem i w create user
     # jeśli będzie taka funkcja wykorzystaywana w innych schemach też, to przenieść do osobnego pliku
     return dt.strftime("%d.%m.%Y, %H:%M")
+
+
+async def validate_user_update_data(
+    db: Session,
+    role: Optional[str],
+    status: Optional[str],
+    specjalista: Optional[list[str]]
+) -> None:
+    if role and role not in [r.value for r in RoleEnum]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role. Must be one of: {[r.value for r in RoleEnum]}"
+        )
+    
+    if status and status not in [s.value for s in StatusEnum]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid status. Must be one of: {[s.value for s in StatusEnum]}"
+        )
+    
+    if specjalista:
+        # Get valid specialist types from possible_values table
+        valid_specialists = db.query(PossibleValues)\
+            .filter(PossibleValues.Variable_name == "Specjalista")\
+            .first()
+        
+        if not valid_specialists:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Could not validate specialist types"
+            )
+            
+        valid_specialist_types = valid_specialists.Possible_values.keys()
+        
+        for spec in specjalista:
+            if spec not in valid_specialist_types:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid specialist type: {spec}. Must be one of: {list(valid_specialist_types)}"
+                )
