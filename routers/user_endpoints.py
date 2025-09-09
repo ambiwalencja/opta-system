@@ -229,7 +229,6 @@ async def get_valid_values(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='You are not an admin'
         )
-    # TODO: specjalista - pobieranie wartości nie działa - sprawdzić czemu
     # Get specialist types from possible_values table
     specialist_types = db.query(PossibleValues)\
         .filter(PossibleValues.Variable_name == "Specjalista")\

@@ -4,7 +4,7 @@ from schemas.user_schemas import UserBase, RoleEnum, StatusEnum
 from sqlalchemy.orm.session import Session
 from auth.hashing import Hash
 from datetime import datetime
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status as http_status
 from db_models.config import PossibleValues
 from typing import Optional
 
@@ -29,7 +29,7 @@ def create_user(db: Session, request: UserBase):
 def get_user_by_username(db: Session, username: str):
     user = db.query(User).filter(User.Username == username).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND,
         detail=f'User with username {username} not found')
     return user
 
@@ -59,13 +59,13 @@ async def validate_user_update_data(
 ) -> None:
     if role and role not in [r.value for r in RoleEnum]:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid role. Must be one of: {[r.value for r in RoleEnum]}"
         )
     
     if status and status not in [s.value for s in StatusEnum]:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid status. Must be one of: {[s.value for s in StatusEnum]}"
         )
     
@@ -77,7 +77,7 @@ async def validate_user_update_data(
         
         if not valid_specialists:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Could not validate specialist types"
             )
             
@@ -86,6 +86,6 @@ async def validate_user_update_data(
         for spec in specjalista:
             if spec not in valid_specialist_types:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid specialist type: {spec}. Must be one of: {list(valid_specialist_types)}"
                 )
