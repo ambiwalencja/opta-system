@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 import os
 from db.db_connect import get_db
-from schemas.user_schemas import UserBase, UserDisplay, UserSignIn, TokenRequest, RoleEnum, StatusEnum
+from schemas.user_schemas import UserCreate, UserDisplay, UserSignIn, TokenRequest, RoleEnum, StatusEnum, UserUpdate
 from db_models.user_data import User
 from db_models.config import PossibleValues
 from utils import user_functions
@@ -21,9 +21,8 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-
 @router.post('/create/{passphrase}', response_model=UserDisplay)
-def create_user(request: UserBase, passphrase: str, db: Session = Depends(get_db)):
+def create_user(request: UserCreate, passphrase: str, db: Session = Depends(get_db)):
     # check passphrase
     if passphrase != os.environ.get('REGISTER_PASSPHRASE'):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -33,7 +32,6 @@ def create_user(request: UserBase, passphrase: str, db: Session = Depends(get_db
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
             detail='User already exists')
     return user_functions.create_user(db, request)
-
 
 @router.post('/login')
 def login(request: UserSignIn, db: Session = Depends(get_db)):
@@ -87,14 +85,6 @@ async def refresh_token(data: TokenRequest, db: Session = Depends(get_db)):
     new_access_token = create_access_token({"username": user.Username})
     return {"access_token": new_access_token}
 
-
-# # ver 1 - z użyciem get_current_user
-# @router.get('/me', response_model=UserDisplay)
-# def get_current_user_info(current_user: User = Depends(get_current_user)):
-#     return current_user
-
-
-# ver 2 - z użyciem get_user_from_token (dla access i refresh tokena)
 @router.get("/me", response_model=UserDisplay)
 def get_me(current_user: User = Depends(get_user_from_token("access_token"))):
     return current_user
@@ -186,13 +176,10 @@ def activate_user(username: str, db: Session = Depends(get_db), current_user: Us
     db.refresh(user)
     return True
 
-@router.post("/update")
+@router.post("/update", response_model=UserDisplay)
 async def update_user_info(
     username: str, 
-    full_name: Optional[str] = None,
-    specjalista: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    status: Optional[str] = None,
+    request: UserUpdate,
     db: Session = Depends(get_db),
     current_user: UserSignIn = Depends(get_user_from_token("access_token"))
 ):
@@ -200,24 +187,25 @@ async def update_user_info(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
     
-    await user_functions.validate_user_update_data(db, role, status, specjalista)
+    await user_functions.validate_user_update_data(db, request.role, request.status, request.specjalista)
     
     user = db.query(User).filter(User.Username == username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
             detail=f'User with username {username} does not exist')
-    if full_name:
-        user.Full_name = full_name
-    if specjalista:
-        user.Specjalista = specjalista
-    if role:
-        user.Role = role
-    if status:
-        user.Status = status
+    if request.full_name:
+        user.Full_name = request.full_name
+    if request.specjalista:
+        user.Specjalista = request.specjalista
+    if request.role:
+        user.Role = request.role
+    if request.status:
+        user.Status = request.status
     db.add(user)
     db.commit()
     db.refresh(user)
-    return True
+    return user
+# TODO: teraz działa tylko zastanowić się nad responsem, czy response model, czy mgłby to być UserDisplay, i czy w schemie są potrzebne from attributes, i validate by alias
 
 @router.get("/valid-values")
 async def get_valid_values(
