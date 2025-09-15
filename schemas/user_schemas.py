@@ -1,7 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel #, model_validator
 from pydantic.fields import Field
 from enum import Enum
 from typing import Optional, List
+# from fastapi import Depends
+# from sqlalchemy.orm import Session
+# from db.db_connect import get_db
+# from utils.validation import validate_specialist_types
 
 
 class RoleEnum(str, Enum):
@@ -27,18 +31,22 @@ class UserBase(BaseModel):
     # possible_values validation - for values that can be changed by user
     class Config:
         populate_by_name = True
+    
+    # @model_validator(mode='after')
+    # async def validate_specjalista(self, db: Session = Depends(get_db)):
+    #     await validate_specialist_types(db, self.specjalista)
 
+    # @model_validator(mode='after')
+    # async def validate_specjalista(cls, values):
+    #     db = next(get_db())  # Explicitly get DB session
+    #     await validate_specialist_types(db, values.specjalista)
+    #     return values
+    
 class UserCreate(UserBase):
     """Schema for user creation"""
     password: str = Field(alias='Password', serialization_alias='password')
 
-    # TODO: tutaj taka propozycja od AI - może warto sprawdzić sposób walidacji taki
-    # @model_validator(mode='after')
-    # def validate_specjalista(self):
-    #     from utils.validation import validate_choice
-    #     for spec in self.specjalista:
-    #         validate_choice(db, "Specjalista", spec)
-    #     return self
+    
 
 class UserDisplay(UserBase):
     id_uzytkownika: int = Field(alias='ID_uzytkownika', serialization_alias='id_uzytkownika')
@@ -56,8 +64,13 @@ class UserUpdate(BaseModel):
     specjalista: Optional[List[str]] = Field(None, alias='Specjalista', serialization_alias='specjalista')
 
     class Config:
-        # validate_by_alias = True
         from_attributes = True
+    
+    # @model_validator(mode='after')
+    # async def validate_optional_specjalista(self, db: Session = Depends(get_db)):
+    #     if self.specjalista:  # Only validate if field is provided
+    #         await validate_specialist_types(db, self.specjalista)
+    #     return self
 
 class UserSignIn(BaseModel):
     username: str

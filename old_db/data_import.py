@@ -6,7 +6,9 @@ from schemas.client_schemas import CreatePacjent
 from utils.client_functions import create_pacjent
 # from utils.user_functions import create_user
 from datetime import datetime
-
+import ast
+from io import BytesIO
+from typing import Union
 
 def import_table_to_dataframe(table_name: str, db: Session):
     try:
@@ -29,9 +31,9 @@ def import_from_csv(file_path: str):
         print(f"Error loading data from CSV: {e}")
         return None
 
-from schemas.user_schemas import UserBase, RoleEnum, StatusEnum
+from schemas.user_schemas import UserCreate, RoleEnum, StatusEnum
 
-def import_users_from_csv_complex(file_path: str) -> list[UserBase]:
+def import_users_from_csv_complex(file_path: str) -> list[UserCreate]:
     """Import users from CSV file and convert to UserBase objects.
     This is iterative and handles errors in more detail."""
     try:
@@ -50,8 +52,8 @@ def import_users_from_csv_complex(file_path: str) -> list[UserBase]:
                 # Convert string of specializations to list
                 specjalista = [s.strip() for s in str(row['specjalista']).split(',')]
                 
-                # Create UserBase object with validation
-                user = UserBase(
+                # Create UserCreate object with validation
+                user = UserCreate(
                     full_name=row['full_name'],
                     username=row['username'],
                     password=row['password'],  # Note: password should be hashed
@@ -73,19 +75,25 @@ def import_users_from_csv_complex(file_path: str) -> list[UserBase]:
             detail=f"Error reading CSV file: {str(e)}"
         )
 
-def import_users_from_csv_simple(file_path: str) -> list[UserBase]:
+def import_users_from_csv_simple(file_source: Union[str, BytesIO]) -> list[UserCreate]:
     """Import users from CSV file and convert to UserBase objects.
     This is vertorized and handles errors automatically."""
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(
+        file_source,
+        sep=';',           # use semicolon as separator
+        skiprows=1,        # skip the "Table 1" row
+        encoding='utf-8'
+        )
     
     # Vectorized operation on entire column
-    df['specjalista'] = df['specjalista'].str.split(',').str.strip()
-    
+    # df['specjalista'] = df['specjalista'].str.split(',').str.strip()
+    df['Specjalista'] = df['Specjalista'].apply(ast.literal_eval)
+
     # Convert entire DataFrame to list of dicts at once
     users_data = df.to_dict('records')
     
     # List comprehension for conversion
-    return [UserBase(**user_data) for user_data in users_data]
+    return [UserCreate(**user_data) for user_data in users_data]
 
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
     if df is None or df.empty:

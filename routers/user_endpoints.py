@@ -8,9 +8,15 @@ from db_models.user_data import User
 from db_models.config import PossibleValues
 from utils import user_functions
 from auth.hashing import Hash
-from auth.oauth2 import create_access_token, create_refresh_token, get_current_user
+from auth.oauth2 import create_access_token, create_refresh_token #, get_current_user
 from auth.oauth2 import get_user_from_token_raw, get_user_from_token
-from typing import Optional
+# from typing import Optional
+from io import BytesIO
+from fastapi import UploadFile, File
+from old_db.data_import import import_users_from_csv_simple
+from utils.validation import validate_specialist_types
+
+
 
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get('REFRESH_TOKEN_EXPIRE_DAYS'))
 REFRESH_TOKEN_EXPIRE_SECONDS = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
@@ -22,16 +28,18 @@ router = APIRouter(
 )
 
 @router.post('/create/{passphrase}', response_model=UserDisplay)
-def create_user(request: UserCreate, passphrase: str, db: Session = Depends(get_db)):
+async def create_user(request: UserCreate, passphrase: str, db: Session = Depends(get_db)):
     # check passphrase
     if passphrase != os.environ.get('REGISTER_PASSPHRASE'):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
             detail='Incorrect passphrase')
+    # validate request
+    await validate_specialist_types(db, request.specjalista)
     # check if user already exists
     if db.query(User).filter(User.Username == request.username).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
             detail='User already exists')
-    return user_functions.create_user(db, request)
+    return await user_functions.create_user(db, request)
 
 @router.post('/login')
 def login(request: UserSignIn, db: Session = Depends(get_db)):
@@ -187,8 +195,10 @@ async def update_user_info(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
     
-    await user_functions.validate_user_update_data(db, request.role, request.status, request.specjalista)
-    
+    # await user_functions.validate_user_update_data(db, request.role, request.status, request.specjalista)
+    if request.specjalista:
+        await validate_specialist_types(db, request.specjalista)
+
     user = db.query(User).filter(User.Username == username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -205,7 +215,6 @@ async def update_user_info(
     db.commit()
     db.refresh(user)
     return user
-# TODO: teraz działa tylko zastanowić się nad responsem, czy response model, czy mgłby to być UserDisplay, i czy w schemie są potrzebne from attributes, i validate by alias
 
 @router.get("/valid-values")
 async def get_valid_values(
@@ -228,23 +237,19 @@ async def get_valid_values(
         "specialist_types": list(specialist_types.Possible_values.keys()) if specialist_types else []
     }
 
-from fastapi import UploadFile, File
-from old_db.data_import import import_users_from_csv_simple
 
 @router.post("/import-csv")
-async def import_users_from_file( # TODO: dowiedzieć się, czemu async
+async def import_users_from_file( # async to handle file upload using fastapi's FileUpload
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
     try:
-        # Save uploaded file temporarily
-        temp_file = f"temp_{file.filename}"
-        with open(temp_file, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+        # Read file content into memory
+        content = await file.read()
+        file_object = BytesIO(content)
         
         # Process the file
-        users = import_users_from_csv_simple(temp_file)
+        users = import_users_from_csv_simple(file_object)
         
         # Import users to database
         results = {
@@ -254,14 +259,10 @@ async def import_users_from_file( # TODO: dowiedzieć się, czemu async
         
         for user in users:
             try:
-                create_user(db, user)
+                user_functions.create_user(db, user)
                 results["success"] += 1
             except Exception as e:
                 results["errors"].append(f"Error creating user {user.username}: {str(e)}")
-        
-        # Clean up
-        import os
-        os.remove(temp_file)
         
         return results
         
