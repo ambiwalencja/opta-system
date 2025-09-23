@@ -9,29 +9,17 @@ from datetime import datetime
 import ast
 from io import BytesIO
 from typing import Union
+from schemas.user_schemas import UserCreate
 
-def import_table_to_dataframe(table_name: str, db: Session):
+def import_table_to_dataframe(table_name: str, db: Session, schema: str = None) -> pd.DataFrame:
     try:
-        df = pd.read_sql_table(table_name, db.connection())
+        df = pd.read_sql_table(table_name, db.connection(), schema=schema)
         print("Successfully loaded data from MySQL! ⚙️")
         print(df.head())
         return df
     except Exception as e:
         print(f"Error loading data from MySQL: {e}")
         return None
-
- 
-def import_from_csv(file_path: str):
-    try:
-        df = pd.read_csv(file_path)
-        print("Successfully loaded data from CSV! ⚙️")
-        print(df.head())
-        return df
-    except Exception as e:
-        print(f"Error loading data from CSV: {e}")
-        return None
-
-from schemas.user_schemas import UserCreate, RoleEnum, StatusEnum
 
 def import_users_from_csv_complex(file_path: str) -> list[UserCreate]:
     """Import users from CSV file and convert to UserBase objects.
