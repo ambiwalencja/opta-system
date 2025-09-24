@@ -14,11 +14,11 @@ from schemas.user_schemas import UserCreate
 def import_table_to_dataframe(table_name: str, db: Session, schema: str = None) -> pd.DataFrame:
     try:
         df = pd.read_sql_table(table_name, db.connection(), schema=schema)
-        print("Successfully loaded data from MySQL! ⚙️")
+        print("Successfully loaded data from database! ⚙️")
         print(df.head())
         return df
     except Exception as e:
-        print(f"Error loading data from MySQL: {e}")
+        print(f"Error loading data from database: {e}")
         return None
 
 def import_users_from_csv_complex(file_path: str) -> list[UserCreate]:

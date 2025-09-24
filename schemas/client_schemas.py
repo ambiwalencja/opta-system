@@ -10,7 +10,7 @@ class CreatePacjent(BaseModel):
     imie: str = Field(..., alias="Imie")
     nazwisko: str = Field(..., alias="Nazwisko")
     email: Optional[str] = Field(None, alias="Email")
-    telefon: str = Field(..., alias="Telefon")
+    telefon: Optional[str] = Field(None, alias="Telefon")
     dzielnica: str = Field(..., alias="Dzielnica")
     ulica: str = Field(..., alias="Ulica")
     nr_domu: int = Field(..., alias="Nr_domu")
@@ -69,10 +69,10 @@ class CreatePacjent(BaseModel):
     
     @field_validator('telefon')
     def validate_phone(cls, v):
-        if not re.match(r'^\+48[0-9]{9}$', v): # tylko polskie, tylko komórkowe, bez innych znaków
-            # TODO: użytkownik ma wpisywać tylko cyfry
+        if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry
             # bez kierunkowego niech będzie na razie
             # ogólny r'^\+?[1-9][0-9]{8,14}$'
+            # polskie r'^\+48[0-9]{9}$'
             raise ValueError('Invalid phone number format')
         return v
     
@@ -106,8 +106,6 @@ class CreatePacjent(BaseModel):
     #     if v is not None and v > date.today():
     #         raise ValueError(f"{info.field_name} cannot be in the future")
     #     return v
-    
-
 
     class Config():
         from_attributes = True # orm_mode = True - deprecated in v2, changed to from_attributes

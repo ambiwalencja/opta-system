@@ -75,6 +75,13 @@ def replace_user_names_with_ids(user_column_in_pacjenci: pd.Series, df_users: pd
     lookup_series = df_users.set_index('Full_name')['ID_uzytkownika']
     return user_column_in_pacjenci.map(lookup_series).fillna(-1) # if doesn't match, will be NaN so added .fillna(-1)) for nocrash xD
 
+def clean_phone_numbers(phone_column: pd.Series) -> pd.Series:
+    """Clean phone numbers by removing non-digit characters and set incorrect numbers as Null."""
+    cleaned_phone_column = phone_column.astype(str).str.replace(r'\D', '', regex=True)
+    invalid_mask = (~cleaned_phone_column.str.match(r'^\d{9}$')) | (cleaned_phone_column == '000000000')
+    cleaned_phone_column.loc[invalid_mask] = None
+    return cleaned_phone_column
+
 def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     # Rename columns to match new schema
     df = df.rename(columns=COLUMN_MAPPING)
@@ -120,7 +127,7 @@ def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     # recode specific columns
     df['ID_uzytkownika'] = transform_column_id_uzytkownika(df['ID_uzytkownika'])
     df['ID_uzytkownika'] = replace_user_names_with_ids(df['ID_uzytkownika'], import_table_to_dataframe('users', db, 'user_data'))
-
+    df['Telefon'] = clean_phone_numbers(df['Telefon'])
     return df
 
 def transform_table_wizyty(df: pd.DataFrame):
