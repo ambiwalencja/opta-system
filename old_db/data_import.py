@@ -14,7 +14,7 @@ from schemas.user_schemas import UserCreate
 def import_table_to_dataframe(table_name: str, db: Session, schema: str = None) -> pd.DataFrame:
     try:
         df = pd.read_sql_table(table_name, db.connection(), schema=schema)
-        print("Successfully loaded data from database! ⚙️")
+        print("Successfully loaded data from database:")
         print(df.head())
         return df
     except Exception as e:
@@ -84,6 +84,10 @@ def import_users_from_csv_simple(file_source: Union[str, BytesIO]) -> list[UserC
     return [UserCreate(**user_data) for user_data in users_data]
 
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
+    # df = df.head(10) # for testing, limit to first 20 rows
+    # with open('test10.csv', 'w', newline='', encoding='utf-8') as f:
+    #     df.to_csv(f, index=False)
+
     if df is None or df.empty:
         raise HTTPException(
             status_code=400,
@@ -95,26 +99,49 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
     errors = []
 
     for index, row in df.iterrows():
+        # print(f"print 1 Processing row {index}")
         try:
             # Convert row to dict and create CreatePacjent object
             pacjent_data = row.to_dict()
+            # print(f'print 2 {pacjent_data["Telefon"]}')
             
             # Convert date strings to date objects
             for date_field in ['Data_zgloszenia', 'Data_zakonczenia', 'Data_ostatniej_wizyty']:
-                if date_field in pacjent_data and pacjent_data[date_field]:
-                    try:
-                        pacjent_data[date_field] = datetime.strptime(
-                            str(pacjent_data[date_field]), '%Y-%m-%d'
-                        ).date()
-                    except ValueError as e:
-                        raise HTTPException(
-                            status_code=400,
-                            detail=f"Invalid date format in row {index} for field {date_field}: {str(e)}"
-                        )
+                date_value = pacjent_data.get(date_field)
+                # print(f'print 3 daty: {date_field} {date_value}')
+                if pd.isna(date_value): # NaN, NaT
+                    pacjent_data[date_field] = None
+                    # print(f'print 4a data była none')
+                    continue
 
+                try:
+                    # pacjent_data[date_field] = datetime.strptime(date_value, '%Y-%m-%d %H:%M:%S').date()
+                    pacjent_data[date_field] = date_value.date() # we use this method because the object is already a Timestamp, not a string
+                    # print(f'print 4 data skonwertowana: {pacjent_data[date_field]}')
+                except AttributeError as e: # This catches if the object is *not* a Timestamp and *not* a datetime
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid date object type in row {index} for field {date_field}: {str(e)}"
+                    )
+            
+            # Convert empty strings to None
+            for key, value in pacjent_data.items():
+                # print(f'print 5 szukamy nonów {key}: {value}; type: {type(value)}')
+                if isinstance(value, (list, tuple, dict, pd.Series)):
+                    # print(f'print: Ignored collection type for missing data check')
+                    continue # Skip the missing value check for collections
+                if isinstance(value, str):
+                    if value.strip() == '':
+                        # print(f'print 6a było puste pole stringowe')
+                        pacjent_data[key] = None
+                elif pd.isna(value): # NaN, NaT # we can't give a collection as an argument here, because it then returns a collection of bools, not a single bool
+                    # print(f'print 6b było puste pole NaN/NaT')
+                    pacjent_data[key] = None
+            
             # Create Pydantic model
             try:
                 pacjent = CreatePacjent(**pacjent_data)
+                # print(f'print 7 Pacjent object created: {pacjent.imie} {pacjent.nazwisko}')
             except Exception as e:
                 raise HTTPException(
                     status_code=422,
@@ -123,6 +150,8 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
             
             # Use the create_pacjent function directly
             created_patient = create_pacjent(db, pacjent)
+            # TODO: this omits duplicate checks and choice validation - should we add them here too?
+            # they are now in create_pacjent endpoint, not in create_pacjent function
             
             success_count += 1
             print(f"Successfully imported patient {pacjent.imie} {pacjent.nazwisko}")

@@ -79,13 +79,13 @@ PLACOWKA_KIERUJACA_MAP = {
     10: "inne - jakie?"
 }
 
-STATUS_PACJENTA_MAP = {
-    1: "przekierowanie do innej placówki",
-    2: "aktywny, klient w kontakcie",
-    3: "zakończona pomoc",
-    4: "rezygnacja",
-    5: "kontakt zawieszony",
-    6: "klient powracający"
+STATUS_PACJENTA_MAP = { # bo w stastusie nagle liczby nie były intami tylko stringami
+    "1": "przekierowanie do innej placówki",
+    "2": "aktywny, klient w kontakcie",
+    "3": "zakończona pomoc",
+    "4": "rezygnacja",
+    "5": "kontakt zawieszony",
+    "6": "klient powracający"
 }
 
 # Multiple-choice field mappings (as JSON arrays)
@@ -132,7 +132,7 @@ WSPARCIE_MAP = {
 }
 
 COLUMN_MAPPING = {
-        'nridklienta': 'ID_pacjenta', # INFO: uwaga, pacjenci są identyfikowani po tym numerze (przy wizytach np), nie po zmiennej id_pacjenta!
+        'numeridklienta': 'ID_pacjenta', # INFO: uwaga, pacjenci są identyfikowani po tym numerze (przy wizytach np), nie po zmiennej id_pacjenta!
         # pytanie, czy gdzieś jest uzywana zmienna id_pacjenta (która wygląda jak klucz główny w starej tabeli pacjenci)
         'rejestrator': 'ID_uzytkownika',  # to jest imię i nazwisko wpisywane z ręki w starej bazie
         'data_zgloszenia': 'Data_zgloszenia',

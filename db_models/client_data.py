@@ -24,8 +24,8 @@ class Pacjent(Base):
     Telefon = Column(String)
     Dzielnica = Column(String)
     Ulica = Column(String)
-    Nr_domu = Column(Integer)
-    Nr_mieszkania = Column(Integer)
+    Nr_domu = Column(String) # cannot be Integer because of values like "12A" or "12/14"
+    Nr_mieszkania = Column(String) # cannot be Integer because of values like "12A" or "12/14"
     Kod_pocztowy = Column(String) # opcjonalny
     Wiek = Column(Integer)
     Status_zawodowy = Column(String) 
