@@ -1,9 +1,3 @@
-# https://stackoverflow.com/questions/13677781/getting-sqlalchemy-to-issue-create-schema-on-create-all
-
-# https://overiq.com/sqlalchemy-101/defining-schema-in-sqlalchemy-orm/ tutaj spoko opisane budowanie modeli
-# https://medium.com/@shubhkarmanrathore/comprehensive-guide-to-schema-design-in-python-with-sqlalchemy-adding-validations-and-constraints-ba40c579a91b tutaj tutek z walidacją danych (np do emaila, telefonu)
-
-
 from sqlalchemy import Column, Integer, Numeric, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData
 from sqlalchemy.orm import relationship
 from db.db_connect import Base

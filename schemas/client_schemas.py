@@ -69,6 +69,8 @@ class CreatePacjent(BaseModel):
     
     @field_validator('telefon')
     def validate_phone(cls, v):
+        if v is None:
+            return v
         if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry
             # bez kierunkowego niech będzie na razie
             # ogólny r'^\+?[1-9][0-9]{8,14}$'

@@ -15,12 +15,6 @@ def transform_imported_table(table_name: str, db_old: Session, db_new: Session) 
         df = transform_table_groupvisits(df)
     elif table_name == "users":
         df = transform_table_users(df)
-    # elif table_name == "czykorzysta_unserialized":
-    #     df = transform_table_czykorzysta(df)
-    # elif table_name == "jakiproblem_unserialized":
-    #     df = transform_table_jakiproblem(df)
-    # elif table_name == "propozycja_unserialized":
-    #     df = transform_table_rodzajwsparcia(df)
     else:
         raise ValueError(f"Unknown table name: {table_name}")
     filename = f"test_table_import_after_transform_{table_name}.csv"
@@ -77,12 +71,11 @@ def replace_user_names_with_ids(user_column_in_pacjenci: pd.Series, df_users: pd
     lookup_series = df_users.set_index('Full_name')['ID_uzytkownika']
     print("lookup series:")
     print(lookup_series.head(5))
-    return user_column_in_pacjenci.map(lookup_series).fillna(-1) # if doesn't match, will be NaN so added .fillna(-1)) for nocrash xD
+    return user_column_in_pacjenci.map(lookup_series).fillna(1) # if doesn't match, will be NaN so added .fillna(-1)) for nocrash xD
 
 def clean_phone_numbers(phone_column: pd.Series) -> pd.Series:
     """Clean phone numbers by removing non-digit characters and set incorrect numbers as Null."""
     cleaned_phone_column = phone_column.astype(str).str.replace(r'\D', '', regex=True)
-    # cleaned_phone_column = cleaned_phone_column.replace({'': None})
     invalid_mask = (~cleaned_phone_column.str.match(r'^\d{9}$')) | (cleaned_phone_column == '000000000')
     cleaned_phone_column.loc[invalid_mask] = None
     return cleaned_phone_column
@@ -97,50 +90,27 @@ def transform_table_pacjenci(df: pd.DataFrame, db: Session):
 
     # Rename columns to match new schema
     df = df.rename(columns=COLUMN_MAPPING)
-    # print('Dataframe columns after renaming:')
-    # print(df.columns)
-    df = df.set_index('ID_pacjenta')  # Set index to ID_pacjenta
 
-    
+    # organizing columns - move ID_pacjenta to front and sort rows by it
+    cols = df.columns.tolist()
+    cols.insert(0, cols.pop(cols.index('ID_pacjenta')))
+    df = df[cols]
+    df = df.sort_values(by='ID_pacjenta', ascending=True)
+
     # Recode single-choice fields
-    # print("3")
     df['Dzielnica'] = df['Dzielnica'].map(DZIELNICA_MAP)
     df['Status_zawodowy'] = df['Status_zawodowy'].map(STATUS_ZAWODOWY_MAP)
     df['Stan_cywilny'] = df['Stan_cywilny'].map(STAN_CYWILNY_MAP)
-    # print("wykształcenie przed mapowaniem")
-    # print(df['Wyksztalcenie'].iloc[0])
-    # print(type(df['Wyksztalcenie'].iloc[0]))
     df['Wyksztalcenie'] = df['Wyksztalcenie'].map(WYKSZTALCENIE_MAP)
-    # print("wykształcenie po mapowaniu")
-    # print(df['Wyksztalcenie'].iloc[0])
-    # print(type(df['Wyksztalcenie'].iloc[0]))
     df['Plec'] = df['Plec'].map(PLEC_MAP)
     df['Zrodlo_informacji'] = df['Zrodlo_informacji'].map(ZRODLO_INFORMACJI_MAP)
     df['Placowka_kierujaca'] = df['Placowka_kierujaca'].map(PLACOWKA_KIERUJACA_MAP)
-    # print("status przed mapowaniem")
-    # print(df['Status_pacjenta'].iloc[0])
-    # print(type(df['Status_pacjenta'].iloc[0]))
     df['Status_pacjenta'] = df['Status_pacjenta'].map(STATUS_PACJENTA_MAP)
-    # print("status po mapowaniu")
-    # print(df['Status_pacjenta'].iloc[0])
-    # print(type(df['Status_pacjenta'].iloc[0]))
-
-    # print("4")
-    # # Convert multiple-choice fields to JSON arrays
-    # if 'czykorzysta' in df.columns:
-    #     df['Korzystanie_z_pomocy'] = df['czykorzysta'].apply(lambda x: [KORZYSTANIE_Z_POMOCY_MAP[int(i)] for i in str(x).split(',') if i.isdigit()])
-        
-    # if 'jakiproblem' in df.columns:
-    #     df['Problemy'] = df['jakiproblem'].apply(lambda x: [PROBLEMY_MAP[int(i)] for i in str(x).split(',') if i.isdigit()])
-    
-    # if 'rodzajwsparcia' in df.columns:
-    #     df['Zaproponowane_wsparcie'] = df['rodzajwsparcia'].apply(lambda x: [WSPARCIE_MAP[int(i)] for i in str(x).split(',') if i.isdigit()])
 
     # Convert multiple-choice fields
     df = transform_multiple_choice(df, 'Korzystanie_z_pomocy', KORZYSTANIE_Z_POMOCY_MAP)
     df = transform_multiple_choice(df, 'Problemy', PROBLEMY_MAP)
     df = transform_multiple_choice(df, 'Zaproponowane_wsparcie', WSPARCIE_MAP)
-    # print("5")
 
     # Convert boolean fields
     boolean_columns = ['Niebieska_karta', 'Grupa_robocza', 'Plan_pomocy', 'Narzedzia_prawne', 'Zawiadomienie', 'Ewaluacja',
@@ -151,13 +121,9 @@ def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     
     # recode specific columns
     df['ID_uzytkownika'] = transform_column_id_uzytkownika(df['ID_uzytkownika'])
-    # print("6")
     df['ID_uzytkownika'] = replace_user_names_with_ids(df['ID_uzytkownika'], import_table_to_dataframe('users', db, 'user_data'))
-    # print("7")
     df['Telefon'] = clean_phone_numbers(df['Telefon'])
-    # print("8")
 
-    # print(df['Data_zgloszenia'].iloc[0])
     return df
 
 def transform_table_wizyty(df: pd.DataFrame):
