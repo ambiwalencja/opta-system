@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm.session import Session
-from old_db.old_db_connect import get_db
+from old_db.old_db_connect import get_db as get_db_old
+from db.db_connect import get_db as get_db_new
 from old_db.data_import import import_table_to_dataframe
 from old_db.transform_old_db import transform_imported_table
 from old_db.data_import import import_pacjenci_to_new_db
@@ -12,7 +13,7 @@ router = APIRouter(
 )
 
 @router.post('/import')
-def import_table(table_name: str, db: Session = Depends(get_db)):
+def import_table(table_name: str, db: Session = Depends(get_db_old)):
     try:
         df = import_table_to_dataframe(table_name, db)
         # return import_table_to_dataframe(table_name, db)
@@ -24,9 +25,9 @@ def import_table(table_name: str, db: Session = Depends(get_db)):
         )
     
 @router.post('/transform')
-def transform_table(table_name: str, db: Session = Depends(get_db)):
+def transform_table(table_name: str, db_old: Session = Depends(get_db_old), db_new: Session = Depends(get_db_new)):
     try:
-        df = transform_imported_table(table_name, db)
+        df = transform_imported_table(table_name, db_old, db_new)
         # return transform_imported_table(table_name, db)
         return True
     except Exception as e:
@@ -37,13 +38,13 @@ def transform_table(table_name: str, db: Session = Depends(get_db)):
 
 
 @router.post('/import-to-new-db')
-def import_to_new_db(table_name: str, db: Session = Depends(get_db)):
+def import_to_new_db(table_name: str, db_old: Session = Depends(get_db_old), db_new: Session = Depends(get_db_new)):
     try:
         # First transform the data
-        df = transform_imported_table(table_name, db)
+        df = transform_imported_table(table_name, db_old, db_new)
         
         if table_name == "pacjenci":
-            results = import_pacjenci_to_new_db(df, db)
+            results = import_pacjenci_to_new_db(df, db_new)
             return {
                 "message": f"Import completed. Successfully imported {results['success_count']} patients.",
                 "errors": results['errors'] if results['error_count'] > 0 else None

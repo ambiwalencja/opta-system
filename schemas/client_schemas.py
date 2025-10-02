@@ -10,11 +10,11 @@ class CreatePacjent(BaseModel):
     imie: str = Field(..., alias="Imie")
     nazwisko: str = Field(..., alias="Nazwisko")
     email: Optional[str] = Field(None, alias="Email")
-    telefon: str = Field(..., alias="Telefon")
+    telefon: Optional[str] = Field(None, alias="Telefon") # Optional because of old_db missing values
     dzielnica: str = Field(..., alias="Dzielnica")
     ulica: str = Field(..., alias="Ulica")
-    nr_domu: int = Field(..., alias="Nr_domu")
-    nr_mieszkania: Optional[int] = Field(None, alias="Nr_mieszkania")
+    nr_domu: str = Field(..., alias="Nr_domu")
+    nr_mieszkania: str = Field(..., alias="Nr_mieszkania")
     kod_pocztowy: Optional[str] = Field(None, alias="Kod_pocztowy")
     wiek: int = Field(..., alias="Wiek")
     status_zawodowy: str = Field(..., alias="Status_zawodowy")
@@ -35,9 +35,9 @@ class CreatePacjent(BaseModel):
     plan_pomocy_opis: Optional[str] = Field(None, alias="Plan_pomocy_opis")
     narzedzia_prawne: Optional[bool] = Field(None, alias="Narzedzia_prawne")
     zawiadomienie: Optional[bool] = Field(None, alias="Zawiadomienie")
-    postepowanie_cywilne: bool = Field(..., alias="Postepowanie_cywilne")
-    postepowanie_karne: bool = Field(...,  alias="Postepowanie_karne")
-    postepowanie_rodzinne: bool = Field(...,  alias="Postepowanie_rodzinne")
+    postepowanie_cywilne: Optional[bool] = Field(None, alias="Postepowanie_cywilne") # Optional because of old_db missing values
+    postepowanie_karne: Optional[bool] = Field(None, alias="Postepowanie_karne") # Optional because of old_db missing values
+    postepowanie_rodzinne: Optional[bool] = Field(None, alias="Postepowanie_rodzinne") # Optional because of old_db missing values
     liczba_dzieci: int = Field(..., alias="Liczba_dzieci")
     problemy: List = Field(...,  alias="Problemy")
     problemy_inne: Optional[str] = Field(None, alias="Problemy_inne")
@@ -69,10 +69,12 @@ class CreatePacjent(BaseModel):
     
     @field_validator('telefon')
     def validate_phone(cls, v):
-        if not re.match(r'^\+48[0-9]{9}$', v): # tylko polskie, tylko komórkowe, bez innych znaków
-            # TODO: użytkownik ma wpisywać tylko cyfry
+        if v is None:
+            return v
+        if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry
             # bez kierunkowego niech będzie na razie
             # ogólny r'^\+?[1-9][0-9]{8,14}$'
+            # polskie r'^\+48[0-9]{9}$'
             raise ValueError('Invalid phone number format')
         return v
     
@@ -106,8 +108,6 @@ class CreatePacjent(BaseModel):
     #     if v is not None and v > date.today():
     #         raise ValueError(f"{info.field_name} cannot be in the future")
     #     return v
-    
-
 
     class Config():
         from_attributes = True # orm_mode = True - deprecated in v2, changed to from_attributes

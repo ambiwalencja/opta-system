@@ -7,3 +7,6 @@ __pycache__
 archive/
 test.py
 *.csv
+.DS_Store
+.DS_Store?
+._*
