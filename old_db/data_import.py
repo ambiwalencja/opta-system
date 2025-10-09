@@ -2,8 +2,8 @@ import pandas as pd
 # from old_db.old_db_connect import engine
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from schemas.client_schemas import CreatePacjent
-from utils.client_functions import create_pacjent
+from schemas.client_schemas import CreatePacjent, CreateWizytaIndywidualna, ImportPacjent, ImportWizytaIndywidualna
+from utils.client_functions import create_pacjent, import_pacjent, create_wizyta, import_wizyta
 # from utils.user_functions import create_user
 from datetime import datetime
 import ast
@@ -84,7 +84,7 @@ def import_users_from_csv_simple(file_source: Union[str, BytesIO]) -> list[UserC
     return [UserCreate(**user_data) for user_data in users_data]
 
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
-    # df = df.head(10) # for testing, limit to first 20 rows
+    # df = df.head(1000) # for testing, limit
     # with open('test10.csv', 'w', newline='', encoding='utf-8') as f:
     #     df.to_csv(f, index=False)
 
@@ -130,7 +130,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
             
             # Create Pydantic model
             try:
-                pacjent = CreatePacjent(**pacjent_data)
+                pacjent = ImportPacjent(**pacjent_data)
             except Exception as e:
                 raise HTTPException(
                     status_code=422,
@@ -138,10 +138,10 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
                 )
             
             # Use the create_pacjent function directly
-            created_patient = create_pacjent(db, pacjent)
+            imported_patient = create_pacjent(db, pacjent) # TODO: halo tu nie powinno być import pacjent???
             
             success_count += 1
-            print(f"Successfully imported patient {pacjent.imie} {pacjent.nazwisko}")
+            # print(f"Successfully imported patient {pacjent.imie} {pacjent.nazwisko}")
 
         except HTTPException as he:
             error_count += 1
@@ -161,4 +161,157 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
         "errors": errors
     }
     
+    return results
+
+def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
+    df = df.head(1000) # for testing, limit
+    # with open('test_wizyty.csv', 'w', newline='', encoding='utf-8') as f:
+    #     df.to_csv(f, index=False)
+
+    if df is None or df.empty:
+        raise HTTPException(
+            status_code=400,
+            detail="No data to import"
+        )
+    
+    success_count = 0
+    error_count = 0
+    errors = []
+
+    for index, row in df.iterrows():
+        try:
+            # Convert row to dict and create ImportWizyta object
+            wizyta_data = row.to_dict()
+            
+            # Convert date strings to date objects
+            for date_field in ['Data']:
+                date_value = wizyta_data.get(date_field)
+                if pd.isna(date_value): # NaN, NaT
+                    wizyta_data[date_field] = None
+                    continue
+
+                try:
+                    wizyta_data[date_field] = date_value.date() # we use this method because the object is already a Timestamp, not a string
+                except AttributeError as e: # This catches if the object is *not* a Timestamp and *not* a datetime
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid date object type in row {index} for field {date_field}: {str(e)}"
+                    )
+            
+            # Convert empty strings to None
+            for key, value in wizyta_data.items():
+                if isinstance(value, (list, tuple, dict, pd.Series)):
+                    continue # Skip the missing value check for collections
+                if isinstance(value, str):
+                    if value.strip() == '':
+                        wizyta_data[key] = None
+                elif pd.isna(value): # NaN, NaT # we can't give a collection as an argument here, because it then returns a collection of bools, not a single bool
+                    wizyta_data[key] = None
+            
+            # Create Pydantic model
+            try:
+                wizyta = ImportWizytaIndywidualna(**wizyta_data)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Invalid data in row {index}: {str(e)}"
+                )
+            
+            created_wizyta = import_wizyta(db, wizyta)
+            
+            success_count += 1
+            # print(f"Successfully imported wizyta {wizyta.data} {wizyta.typ_wizyty}")
+
+        except HTTPException as he:
+            error_count += 1
+            errors.append(str(he.detail))
+            print(f"HTTP Error at row {index}: {he.detail}")
+            continue
+        except Exception as e:
+            error_count += 1
+            error_msg = f"Error importing wizyta at row {index}: {str(e)}"
+            errors.append(error_msg)
+            print(error_msg)
+            db.rollback() # ???
+            continue
+
+    results = {
+        "success_count": success_count,
+        "error_count": error_count,
+        "errors": errors
+    }
+    
+    return results
+
+def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
+    if df is None or df.empty:
+        raise HTTPException(
+            status_code=400,
+            detail="No data to import"
+        )
+    
+    success_count = 0
+    error_count = 0
+    errors = []
+
+    for index, row in df.iterrows():
+        try:
+            # Convert row to dict and create CreatePacjent object
+            wizyta_data = row.to_dict()
+            
+            # Convert date strings to date objects
+            for date_field in ['Data']:
+                date_value = wizyta_data.get(date_field)
+                if pd.isna(date_value): # NaN, NaT
+                    wizyta_data[date_field] = None
+                    continue
+
+                try:
+                    wizyta_data[date_field] = date_value.date() # we use this method because the object is already a Timestamp, not a string
+                except AttributeError as e: # This catches if the object is *not* a Timestamp and *not* a datetime
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid date object type in row {index} for field {date_field}: {str(e)}"
+                    )
+            
+            # Convert empty strings to None
+            for key, value in wizyta_data.items():
+                if isinstance(value, (list, tuple, dict, pd.Series)):
+                    continue # Skip the missing value check for collections
+                if isinstance(value, str):
+                    if value.strip() == '':
+                        wizyta_data[key] = None
+                elif pd.isna(value): # NaN, NaT # we can't give a collection as an argument here, because it then returns a collection of bools, not a single bool
+                    wizyta_data[key] = None
+            
+            # Create Pydantic model
+            try:
+                wizyta = CreateWizytaIndywidualna(**wizyta_data)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Invalid data in row {index}: {str(e)}"
+                )
+            
+            # Use the create_pacjent function directly
+            created_wizyta = create_wizyta(db, wizyta)
+            
+            success_count += 1
+            print(f"Successfully imported wizyta {wizyta.data} {wizyta.typ_wizyty}")
+        except HTTPException as he:
+            error_count += 1
+            errors.append(str(he.detail))
+            print(f"HTTP Error at row {index}: {he.detail}")
+            continue
+        except Exception as e:
+            error_count += 1
+            error_msg = f"Error importing wizyta at row {index}: {str(e)}"
+            errors.append(error_msg)
+            print(error_msg)
+            continue
+    results = {
+        "success_count": success_count,
+        "error_count": error_count,
+        "errors": errors
+    }
     return results

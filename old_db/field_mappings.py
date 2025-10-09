@@ -131,7 +131,7 @@ WSPARCIE_MAP = {
     13: "inne - jakie?"
 }
 
-COLUMN_MAPPING = {
+PACJENCI_COLUMN_MAPPING = {
         'numeridklienta': 'ID_pacjenta', # INFO: uwaga, pacjenci są identyfikowani po tym numerze (przy wizytach np), nie po zmiennej id_pacjenta!
         # pytanie, czy gdzieś jest uzywana zmienna id_pacjenta (która wygląda jak klucz główny w starej tabeli pacjenci)
         'rejestrator': 'ID_uzytkownika',  # to jest imię i nazwisko wpisywane z ręki w starej bazie
@@ -176,3 +176,66 @@ COLUMN_MAPPING = {
         'status': 'Status_pacjenta',
         'data_zakonczenia': 'Data_zakonczenia',
     }
+
+WIZYTY_COLUMN_MAPPING = {
+        'id_wizyty': 'ID_wizyty',
+        'id_pacjenta': 'ID_pacjenta',
+       
+        # brak 'ID_uzytkownika'!
+        'data_wizyty': 'Data',
+        'specjalista': 'Typ_wizyty',
+        'liczba_godzin': 'Liczba_godzin',
+        'diagnoza_sytuacji': 'Notatka_diagnoza_sytuacji',
+        'opis_sytuacji': 'Notatka_opis_sytuacji',
+        'indywidualny_plan': 'Notatka_indywidualny_plan',
+        'rezultaty': 'Notatka_rezultaty',
+        'odeslanie_do_innych': 'Notatka_odeslanie_do_innych'
+
+}
+
+TYP_WIZYTY_MAP = {
+    1: 'specjalista ds. przeciwdziałania przemocy', 
+    2: 'adwokat socjalny',
+    3: 'psycholog - konsultacja diagnostyczna',
+    4: 'psycholog - konsultacja rodzicielska',
+    5: 'prawnik - konsultacja /porada prawna',
+    6: 'psycholog/terapeuta - wsparcie',
+    7: 'konsultacje do grupy wsparcia i do grupy rozwojowej',
+    17: 'indywidualne konsultacje w zespole psycholog-prawnik',
+    19: 'indywidualne konsultacje do grupy trening antystresowy 2020',
+
+    8: 'grupa wsparcia',
+    9: 'grupa o charakterze rozwojowym',
+    10: 'trening antystresowy',
+    11: 'warsztat psychoedukacyjny 1',
+    12: 'warsztat psychoedukacyjny 2',
+    13: 'warsztat psychoedukacyjny 3',
+    14: 'warsztat psychoedukacyjny 4',
+    15: 'warsztat psychoedukacyjny 5',
+    16: 'warsztat psychoedukacyjny 6', 
+    18: 'trening antystresowy 2020',
+    20: 'trening antystresowy 2021 - grupa 1',
+    21: 'trening antystresowy 2021 - grupa 2',
+    22: 'grupa rozwojowa Jesień 2021',
+    23: 'Grupa wsparcia 2021 - wiosna',
+    24: 'Grupa wsparcia 2021 - jesień',
+    25: 'Warsztat psychoedukacyjny 2021 - wiosna',
+    26: 'Warsztat psychoedukacyjny 2021 - jesień',
+    27: 'trening antystresowy 2022 - grupa 1',
+    28: 'trening antystresowy 2022 - grupa 2',
+    29: 'grupa rozwojowa Jesień 2022',
+    30: 'Grupa wsparcia 2022 - wiosna',
+    31: 'Grupa wsparcia 2022 - jesień',
+    32: 'Warsztat psychoedukacyjny 2022 - wiosna',
+    33: 'Warsztat psychoedukacyjny 2022 - jesień'
+}
+
+SPOTKANIA_GRUPOWE_COLUMN_MAPPING = {
+        'id_wizyty': 'ID_spotkania', # nie, to nie jest to samo!!!!!
+        # ?????? tutaj trzeba będzie pomyśleć
+        'data_wizyty': 'Data',
+        'specjalista': 'Typ_wizyty',
+        'liczba_godzin': 'Liczba_godzin',
+        'rezultaty': 'Notatka_przebieg' #?
+        # Prowadzacy, Obecni_uczestnicy
+}

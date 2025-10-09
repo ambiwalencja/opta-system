@@ -133,7 +133,7 @@ def populate_possible_values(db: Session):
             }},
         
         {"Variable_ID": 22, "Variable_name": "Typ_wizyty", "Variable_label": "Typ wizyty", "Possible_values": {
-            "specjalista ds. przeciwdziałania przemocy w rodzinie": "radio",
+            "specjalista ds. przeciwdziałania przemocy": "radio",
             "adwokat socjalny": "radio",
             "psycholog - konsultacja diagnostyczna": "radio",
             "psycholog - konsultacja rodzicielska": "radio",
@@ -144,7 +144,7 @@ def populate_possible_values(db: Session):
             }},
 
         {"Variable_ID": 23, "Variable_name": "Specjalista", "Variable_label": "Specjalista/rodzaj wizyty", "Possible_values": {
-            "specjalista ds. przeciwdziałania przemocy w rodzinie": "checkbox",
+            "specjalista ds. przeciwdziałania przemocy": "checkbox",
             "adwokat socjalny": "checkbox",
             "psycholog": "checkbox",
             "prawnik": "checkbox",

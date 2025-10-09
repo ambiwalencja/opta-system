@@ -1,7 +1,7 @@
 
-from db_models.client_data import Pacjent
+from db_models.client_data import Pacjent, WizytaIndywidualna
 from db_models.config import PossibleValues
-from schemas.client_schemas import CreatePacjent
+from schemas.client_schemas import BaseModel, CreatePacjent, ImportPacjent, CreateWizytaIndywidualna, ImportWizytaIndywidualna
 from sqlalchemy.orm.session import Session
 from auth.hashing import Hash
 from datetime import datetime
@@ -26,6 +26,7 @@ def check_pacjent_duplicates(db: Session, pacjent_data: CreatePacjent):
             detail=f'Client with name {pacjent_data.imie} {pacjent_data.nazwisko} and the same address already exists')
 
 def validate_choice(db: Session, variable_name: str, chosen_value: str):
+    # print(f"Validating {variable_name} with value {chosen_value}")
     variable_with_pv = db.query(PossibleValues).filter(PossibleValues.Variable_name == variable_name).first()
     if not variable_with_pv:
         return  # no restriction for this field → skip validation
@@ -48,7 +49,7 @@ def validate_choice_fields(db: Session, pacjent_data: CreatePacjent):
             else:
                 validate_choice(db, field_name, field_value)
 
-def create_pacjent(db: Session, pacjent_data: CreatePacjent):
+def core_save_pacjent(db: Session, pacjent_data: BaseModel):
     # 1. Check for duplicates
     check_pacjent_duplicates(db, pacjent_data)
     # 2. Dynamic validation of all choice fields
@@ -78,3 +79,34 @@ def create_pacjent(db: Session, pacjent_data: CreatePacjent):
     db.refresh(new_pacjent)
     return new_pacjent
 
+def create_pacjent(db: Session, pacjent_data: CreatePacjent):
+    return core_save_pacjent(db, pacjent_data)
+
+def import_pacjent(db: Session, pacjent_data: ImportPacjent):
+    return core_save_pacjent(db, pacjent_data)
+
+def core_save_wizyta(db: Session, wizyta_data: BaseModel):
+    # 2. Dynamic validation of typ wizyty
+    validate_choice(db, "Typ_wizyty", wizyta_data.typ_wizyty) # ???
+
+    # 3. Convert to dict with DB column names
+    data_dict = wizyta_data.model_dump(by_alias = True, exclude_unset = True)
+
+    # 4. Add backend-generated fields
+    data_dict["Created"] = datetime.now()
+    data_dict["Last_modified"] = datetime.now()
+    
+    # 6. Create SQLAlchemy object
+    new_wizyta = WizytaIndywidualna(**data_dict)
+    
+    # 7. actually add to DB
+    db.add(new_wizyta)
+    db.commit()
+    db.refresh(new_wizyta)
+    return new_wizyta
+
+def create_wizyta(db: Session, wizyta_data: CreateWizytaIndywidualna):
+    return core_save_wizyta(db, wizyta_data)
+
+def import_wizyta(db: Session, wizyta_data: ImportWizytaIndywidualna):
+    return core_save_wizyta(db, wizyta_data)
