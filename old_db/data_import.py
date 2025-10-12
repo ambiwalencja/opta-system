@@ -1,6 +1,7 @@
 import pandas as pd
 # from old_db.old_db_connect import engine
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 from fastapi import HTTPException
 from schemas.client_schemas import CreatePacjent, CreateWizytaIndywidualna, ImportPacjent, ImportWizytaIndywidualna
 from utils.client_functions import create_pacjent, import_pacjent, create_wizyta, import_wizyta
@@ -20,6 +21,7 @@ def import_table_to_dataframe(table_name: str, db: Session, schema: str = None) 
     except Exception as e:
         print(f"Error loading data from database: {e}")
         return None
+
 
 def import_users_from_csv_complex(file_path: str) -> list[UserCreate]:
     """Import users from CSV file and convert to UserBase objects.
@@ -83,8 +85,27 @@ def import_users_from_csv_simple(file_source: Union[str, BytesIO]) -> list[UserC
     # List comprehension for conversion
     return [UserCreate(**user_data) for user_data in users_data]
 
+def reset_pacjent_sequence(db: Session) -> None:
+    """Resets the PostgreSQL auto-increment sequence to MAX(ID_pacjenta) + 1."""
+    # setval ("sequence_name", next_value, true/false) true means the next call to nextval() will return next_value + 1
+    sql_command = text("""
+        SELECT setval(
+            pg_get_serial_sequence('client_data.pacjenci', 'ID_pacjenta'),
+            (SELECT MAX("ID_pacjenta") FROM client_data.pacjenci), 
+            true
+        );
+    """)
+    
+    try:
+        db.execute(sql_command)
+        db.commit()
+        print("Successfully reset pacjenci ID sequence.")
+    except Exception as e:
+        db.rollback()
+        print(f"Error resetting pacjenci ID sequence: {e}")
+
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
-    # df = df.head(1000) # for testing, limit
+    # df = df.head(100) # for testing, limit
     # with open('test10.csv', 'w', newline='', encoding='utf-8') as f:
     #     df.to_csv(f, index=False)
 
@@ -138,7 +159,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
                 )
             
             # Use the create_pacjent function directly
-            imported_patient = create_pacjent(db, pacjent) # TODO: halo tu nie powinno być import pacjent???
+            imported_patient = import_pacjent(db, pacjent) # TODO: halo tu nie powinno być import pacjent???
             
             success_count += 1
             # print(f"Successfully imported patient {pacjent.imie} {pacjent.nazwisko}")
@@ -160,8 +181,32 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
         "error_count": error_count,
         "errors": errors
     }
+
+    if results["success_count"] > 0:
+        reset_pacjent_sequence(db) # resetting the sequence after bulk import to enable normal inserts
     
     return results
+
+def reset_wizyta_sequence(db: Session) -> None:
+    """Resets the PostgreSQL auto-increment sequence to MAX(ID_wizyty) + 1."""
+
+    sql_command = text("""
+        SELECT setval(
+            pg_get_serial_sequence('client_data.wizyty_indywidualne', 'ID_wizyty'), 
+            (SELECT MAX("ID_wizyty") FROM client_data.wizyty_indywidualne), 
+            true
+        );
+    """)
+    
+    try:
+        print("before sql command")
+        db.execute(sql_command)
+        print("after sql command")
+        db.commit()
+        print("Successfully reset wizyty ID sequence.")
+    except Exception as e:
+        db.rollback()
+        print(f"Error resetting wizyty ID sequence: {e}")
 
 def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
     df = df.head(1000) # for testing, limit
@@ -240,6 +285,10 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
         "error_count": error_count,
         "errors": errors
     }
+
+    if results["success_count"] > 0:
+        print("before reset sequence)")
+        reset_wizyta_sequence(db) # resetting the sequence after bulk import to enable normal inserts
     
     return results
 
