@@ -1,29 +1,59 @@
 
 from db_models.client_data import Pacjent, WizytaIndywidualna
 from db_models.config import PossibleValues
-from schemas.client_schemas import BaseModel, CreatePacjent, ImportPacjent, CreateWizytaIndywidualna, ImportWizytaIndywidualna
+from db_models.user_data import User
+from schemas.client_schemas import (
+    BaseModel, CreatePacjentBasic, CreatePacjentForm, DisplayPacjent, ImportPacjent, UpdatePacjent,
+    CreateWizytaIndywidualna, DisplayWizytaIndywidualna, ImportWizytaIndywidualna
+)
 from sqlalchemy.orm.session import Session
 from auth.hashing import Hash
 from datetime import datetime
 from fastapi import HTTPException, status
 
-def check_pacjent_duplicates(db: Session, pacjent_data: CreatePacjent):
-    # check for duplicates - phone, email, fullname+address
-    if pacjent_data.telefon and db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f'Client with phone number {pacjent_data.telefon} already exists')
-    if pacjent_data.email and db.query(Pacjent).filter(Pacjent.Email == pacjent_data.email).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f'Client with email {pacjent_data.email} already exists')
-    if db.query(Pacjent).filter(
-            Pacjent.Imie == pacjent_data.imie,
-            Pacjent.Nazwisko == pacjent_data.nazwisko,
-            Pacjent.Dzielnica == pacjent_data.dzielnica,
-            Pacjent.Ulica == pacjent_data.ulica,
-            Pacjent.Nr_domu == pacjent_data.nr_domu
-        ).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f'Client with name {pacjent_data.imie} {pacjent_data.nazwisko} and the same address already exists')
+def check_pacjent_duplicates(db: Session, pacjent_data: CreatePacjentBasic):
+    # Check for duplicates - phone
+    if pacjent_data.telefon:
+        duplicate = db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first()
+        if duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "message": f'Client with phone number {pacjent_data.telefon} already exists',
+                    "duplicate_id": duplicate.ID_pacjenta
+                }
+            )
+    
+    # Check for duplicates - email
+    if pacjent_data.email:
+        duplicate = db.query(Pacjent).filter(Pacjent.Email == pacjent_data.email).first()
+        if duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "message": f'Client with email {pacjent_data.email} already exists',
+                    "duplicate_id": duplicate.ID_pacjenta
+                }
+            )
+    
+    # Check for duplicates - name and address
+    duplicate = db.query(Pacjent).filter(
+        Pacjent.Imie == pacjent_data.imie,
+        Pacjent.Nazwisko == pacjent_data.nazwisko,
+        Pacjent.Dzielnica == pacjent_data.dzielnica,
+        # Pacjent.Ulica == pacjent_data.ulica, # na ten moment kasujemy dokładny adres z warunku
+        # Pacjent.Nr_domu == pacjent_data.nr_domu
+    ).first()
+    
+    if duplicate:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": f'Client with name {pacjent_data.imie} {pacjent_data.nazwisko} and the same address already exists',
+                "duplicate_id": duplicate.ID_pacjenta
+            }
+        )
+    return None 
 
 def validate_choice(db: Session, variable_name: str, chosen_value: str):
     # print(f"Validating {variable_name} with value {chosen_value}")
@@ -37,7 +67,7 @@ def validate_choice(db: Session, variable_name: str, chosen_value: str):
             detail=f"Invalid value '{chosen_value}' for {variable_name}. Allowed: {list(variable_with_pv.Possible_values.keys())}"
         )
 
-def validate_choice_fields(db: Session, pacjent_data: CreatePacjent):
+def validate_choice_fields(db: Session, pacjent_data: BaseModel): # zmieniłam z CreatePacjent na BaseModel, żeby można było te przekazać UpdatePacjent
     data_dict = pacjent_data.model_dump(by_alias=True, exclude_unset=True)
     
     for field_name, field_value in data_dict.items():
@@ -49,7 +79,29 @@ def validate_choice_fields(db: Session, pacjent_data: CreatePacjent):
             else:
                 validate_choice(db, field_name, field_value)
 
-def core_save_pacjent(db: Session, pacjent_data: BaseModel):
+
+def create_pacjent_basic(db: Session, pacjent_data: CreatePacjentBasic, id_uzytkownika: int):
+    # 1. Check for duplicates
+    check_pacjent_duplicates(db, pacjent_data)
+    # 2. Dynamic validation of all choice fields (here - only dzielnica)
+    validate_choice_fields(db, pacjent_data)
+    # 3. Convert to dict with DB column names
+    data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
+
+    # 4. Add backend-generated fields
+    data_dict["Created"] = datetime.now()
+    data_dict["Last_modified"] = datetime.now()
+    data_dict["ID_uzytkownika"] = id_uzytkownika
+
+    # 6. Create SQLAlchemy object
+    new_pacjent = Pacjent(**data_dict)
+    # 7. actually add to DB
+    db.add(new_pacjent)
+    db.commit()
+    db.refresh(new_pacjent)
+    return new_pacjent
+
+def import_pacjent(db: Session, pacjent_data: ImportPacjent):
     # 1. Check for duplicates
     check_pacjent_duplicates(db, pacjent_data)
     # 2. Dynamic validation of all choice fields
@@ -79,11 +131,48 @@ def core_save_pacjent(db: Session, pacjent_data: BaseModel):
     db.refresh(new_pacjent)
     return new_pacjent
 
-def create_pacjent(db: Session, pacjent_data: CreatePacjent):
-    return core_save_pacjent(db, pacjent_data)
+def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel): # BaseModel, żeby mógł przyjmować CreatePacjentForm i UpdatePacjent
+    # 1. Check that pacjent exists and find it
+    existing_pacjent = db.query(Pacjent).filter(Pacjent.ID_pacjenta == id_pacjenta).first()
+    if not existing_pacjent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Client with ID {id_pacjenta} does not exist')
+    
+    # 2. Dynamic validation of all choice fields
+    validate_choice_fields(db, pacjent_data)
+    
+    # 3. Convert to dict with DB column names
+    data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
+    
+    # 4. Add backend-generated fields
+    data_dict["Last_modified"] = datetime.now()
+    # data_dict["ID_uzytkownika"] = id_uzytkownika # można się zastanowić, czy tutaj zmieniać rejestrującego
 
-def import_pacjent(db: Session, pacjent_data: ImportPacjent):
-    return core_save_pacjent(db, pacjent_data)
+    # 5. Conditional cleanup - optional
+    if "Niebieska_karta" in data_dict and not data_dict.get("Niebieska_karta"):
+        data_dict["Niebieska_karta_inicjator"] = None
+        data_dict["Grupa_robocza"] = None
+        data_dict["Grupa_robocza_sklad"] = None
+        data_dict["Plan_pomocy"] = None
+        data_dict["Plan_pomocy_opis"] = None
+        data_dict["Narzedzia_prawne"] = None
+        data_dict["Zawiadomienie"] = None
+
+    # 6. Update fields in existing object
+    for key, value in data_dict.items():
+        setattr(existing_pacjent, key, value)
+    
+    # 7. Commit changes to DB
+    db.commit()
+    db.refresh(existing_pacjent)
+    return existing_pacjent
+
+def update_pacjent(db: Session, id_pacjenta: int, pacjent_data: UpdatePacjent):
+    return core_update_pacjent(db, id_pacjenta, pacjent_data)
+
+def create_pacjent_form(db: Session, id_pacjenta: int, pacjent_data: CreatePacjentForm):
+    return core_update_pacjent(db, id_pacjenta, pacjent_data)
+
 
 def core_save_wizyta(db: Session, wizyta_data: BaseModel):
     # 2. Dynamic validation of typ wizyty
@@ -110,3 +199,20 @@ def create_wizyta(db: Session, wizyta_data: CreateWizytaIndywidualna):
 
 def import_wizyta(db: Session, wizyta_data: ImportWizytaIndywidualna):
     return core_save_wizyta(db, wizyta_data)
+
+def get_recent_wizyty(db: Session, id_uzytkownika: int, limit: int = 10):
+    wizyty = db.query(WizytaIndywidualna).filter(WizytaIndywidualna.ID_uzytkownika == id_uzytkownika).order_by(WizytaIndywidualna.Data.desc()).limit(limit).all()
+    return wizyty
+
+def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
+    pacjent_list = db.query(Pacjent.Imie, Pacjent.Nazwisko, 
+                            Pacjent.Data_zgloszenia,
+                            Pacjent.Email, Pacjent.Telefon, Pacjent.Dzielnica,
+                            WizytaIndywidualna.Typ_wizyty,
+                            WizytaIndywidualna.Data # nie Pacjent.Data_ostatniej_wizyty bo to mogłaby być wizyta u innego użytkownika
+                            ).join(WizytaIndywidualna # inner join
+                            ).filter(WizytaIndywidualna.ID_uzytkownika == id_uzytkownika
+                            ).order_by(WizytaIndywidualna.Data.desc()
+                            ).limit(limit).all()
+    # TODO: tutaj sprawdzić jak to działa i czemu nie działa, to znaczy wywala się ale chyba z powodu złych danych. ale napierw dwuetapowe tworzenie pacjenta.
+    return pacjent_list

@@ -3,19 +3,50 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field, model_validator, field_validator
 import re
 
-class CreatePacjent(BaseModel):
-    id_uzytkownika: int = Field(..., alias="ID_uzytkownika") # "..." means it's required
+
+class CreatePacjentBasic(BaseModel):
     data_zgloszenia: date = Field(..., alias="Data_zgloszenia")
-    data_ostatniej_wizyty: Optional[date] = Field(None, alias="Data_ostatniej_wizyty")
     imie: str = Field(..., alias="Imie")
     nazwisko: str = Field(..., alias="Nazwisko")
     email: Optional[str] = Field(None, alias="Email")
     telefon: str = Field(..., alias="Telefon")
     dzielnica: str = Field(..., alias="Dzielnica")
+    
+    @field_validator('telefon')
+    def validate_phone(cls, v):
+        if v is None: # re.match operuje tylko na stringach, nie ogarnia None, więc musimy je wykluczyć
+            return v
+        if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry; 
+            # ogólny r'^\+?[1-9][0-9]{8,14}$'
+            # polskie r'^\+48[0-9]{9}$'
+            raise ValueError('Invalid phone number format')
+        return v
+    
+    @field_validator('email')
+    def validate_email(cls, v):
+        if v is not None and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', v):
+            raise ValueError('Invalid email format')
+        return v
+
+    class Config():
+        from_attributes = True # orm_mode = True - deprecated in v2, changed to from_attributes
+        validate_by_name=True
+        validate_by_alias=True
+        # allow_population_by_field_name, populate_by_name - deprecated
+    
+    # # or modern way of setting up config
+    # model_config = ConfigDict(
+    #         validate_by_name=True,
+    #         validate_by_alias=True
+    #     )
+
+
+class CreatePacjentForm(BaseModel):
+    data_ostatniej_wizyty: Optional[date] = Field(None, alias="Data_ostatniej_wizyty")
     ulica: str = Field(..., alias="Ulica")
     nr_domu: str = Field(..., alias="Nr_domu")
-    nr_mieszkania: str = Field(..., alias="Nr_mieszkania")
-    kod_pocztowy: Optional[str] = Field(None, alias="Kod_pocztowy")
+    nr_mieszkania: Optional[str] = Field(None, alias="Nr_mieszkania")
+    kod_pocztowy: str = Field(..., alias="Kod_pocztowy")
     wiek: int = Field(..., alias="Wiek")
     status_zawodowy: str = Field(..., alias="Status_zawodowy")
     stan_cywilny: str = Field(..., alias="Stan_cywilny")
@@ -46,67 +77,8 @@ class CreatePacjent(BaseModel):
     zaproponowane_wsparcie_inne: Optional[str] = Field(None, alias="Zaproponowane_wsparcie_inne")
     ewaluacja: bool = Field(...,  alias="Ewaluacja")
     status_pacjenta: str = Field(...,  alias="Status_pacjenta")
-    data_zakonczenia: Optional[date] = Field(None, alias="Data_zakonczenia")
-
-    @model_validator(mode="after") # only validating, not overwriting
-    def validate_conditional_fields(self):
-        # If niebieska_karta is False or None, dependent fields must be empty
-        if not self.niebieska_karta:
-            if any([
-                self.niebieska_karta_inicjator,
-                self.grupa_robocza,
-                self.grupa_robocza_sklad,
-                self.plan_pomocy,
-                self.plan_pomocy_opis,
-                self.narzedzia_prawne,
-                self.zawiadomienie
-            ]):
-                raise ValueError(
-                    "When 'Niebieska_karta' is false or null, "
-                    "fields from 'Niebieska_karta_inicjator' to 'Zawiadomienie' must be empty."
-                )
-        return self
     
-    @field_validator('telefon')
-    def validate_phone(cls, v):
-        if v is None: # re.match operuje tylko na stringach, nie ogarnia None, więc musimy je wykluczyć
-            return v
-        if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry; 
-            # ogólny r'^\+?[1-9][0-9]{8,14}$'
-            # polskie r'^\+48[0-9]{9}$'
-            raise ValueError('Invalid phone number format')
-        return v
-    
-    @field_validator('email')
-    def validate_email(cls, v):
-        if v is not None and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', v):
-            raise ValueError('Invalid email format')
-        return v
-    
-    # optional other validations
-    # @field_validator('kod_pocztowy')
-    # def validate_postal_code(cls, v):
-    #     if v is not None and not re.match(r'^\d{2}-\d{3}$', v):
-    #         raise ValueError('Invalid postal code format, expected XX-XXX')
-    #     return v
-    
-    # @field_validator('wiek')
-    # def validate_age(cls, v):
-    #     if v < 0 or v > 120:
-    #         raise ValueError('Age must be between 0 and 120')
-    #     return v
-    
-    # @field_validator('nr_domu', 'nr_mieszkania')
-    # def validate_house_apartment_number(cls, v):
-    #     if v is not None and v <= 0:
-    #         raise ValueError('House and apartment numbers must be positive integers')
-    #     return v
-    
-    # @field_validator('data_ostatniej_wizyty', 'data_zakonczenia')
-    # def validate_dates(cls, v, info):
-    #     if v is not None and v > date.today():
-    #         raise ValueError(f"{info.field_name} cannot be in the future")
-    #     return v
+    # optional validations - int, date fields?
 
     class Config():
         from_attributes = True # orm_mode = True - deprecated in v2, changed to from_attributes
@@ -121,12 +93,6 @@ class CreatePacjent(BaseModel):
     #     )
 
 
-class ImportPacjent(CreatePacjent):
-    id_pacjenta: int = Field(..., alias="ID_pacjenta") 
-    telefon: Optional[str] = Field(None, alias="Telefon")
-    postepowanie_cywilne: Optional[bool] = Field(None, alias="Postepowanie_cywilne")
-    postepowanie_karne: Optional[bool] = Field(None, alias="Postepowanie_karne")
-    postepowanie_rodzinne: Optional[bool] = Field(None, alias="Postepowanie_rodzinne")
 
 class UpdatePacjent(BaseModel):
     data_zgloszenia: Optional[date] = Field(None, alias="Data_zgloszenia")
@@ -172,7 +138,52 @@ class UpdatePacjent(BaseModel):
     status_pacjenta: Optional[str] = Field(None, alias="Status_pacjenta")
     data_zakonczenia: Optional[date] = Field(None, alias="Data_zakonczenia")
 
+    @model_validator(mode="after") # only validating, not overwriting
+    def validate_conditional_fields(self):
+        # If niebieska_karta is False or None, dependent fields must be empty
+        if not self.niebieska_karta:
+            if any([
+                self.niebieska_karta_inicjator,
+                self.grupa_robocza,
+                self.grupa_robocza_sklad,
+                self.plan_pomocy,
+                self.plan_pomocy_opis,
+                self.narzedzia_prawne,
+                self.zawiadomienie
+            ]):
+                raise ValueError(
+                    "When 'Niebieska_karta' is false or null, "
+                    "fields from 'Niebieska_karta_inicjator' to 'Zawiadomienie' must be empty."
+                )
+        return self
+    
+    @field_validator('telefon')
+    def validate_phone(cls, v):
+        if v is None: # re.match operuje tylko na stringach, nie ogarnia None, więc musimy je wykluczyć
+            return v
+        if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry; 
+            # ogólny r'^\+?[1-9][0-9]{8,14}$'
+            # polskie r'^\+48[0-9]{9}$'
+            raise ValueError('Invalid phone number format')
+        return v
+    
+    @field_validator('email')
+    def validate_email(cls, v):
+        if v is not None and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', v):
+            raise ValueError('Invalid email format')
+        return v
+
+    class Config():
+        from_attributes = True
+        validate_by_name=True
+        validate_by_alias=True
+
+
+class ImportPacjent(UpdatePacjent):
+    id_pacjenta: int = Field(..., alias="ID_pacjenta") 
+
 class DisplayPacjent(BaseModel):
+    id_pacjenta: int = Field(..., alias="ID_pacjenta") 
     imie: str = Field(..., alias="Imie")
     nazwisko: str = Field(..., alias="Nazwisko")
     data_zgloszenia: date = Field(..., alias="Data_zgloszenia")
@@ -180,8 +191,11 @@ class DisplayPacjent(BaseModel):
     email: Optional[str] = Field(None, alias="Email")
     telefon: str = Field(..., alias="Telefon")
     dzielnica: str = Field(..., alias="Dzielnica")
-    status_pacjenta: str = Field(...,  alias="Status_pacjenta")
-    id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
+    ulica: Optional[str] = Field(None, alias="Ulica")
+    nr_domu: Optional[str] = Field(None, alias="Nr_domu")
+    nr_mieszkania: Optional[str] = Field(None, alias="Nr_mieszkania")
+    status_pacjenta: Optional[str] = Field(None, alias="Status_pacjenta")
+    # id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
 
 class CreateWizytaIndywidualna(BaseModel):
     id_pacjenta: int = Field(..., alias="ID_pacjenta")

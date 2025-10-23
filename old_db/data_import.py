@@ -3,8 +3,8 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 from fastapi import HTTPException
-from schemas.client_schemas import CreatePacjent, CreateWizytaIndywidualna, ImportPacjent, ImportWizytaIndywidualna
-from utils.client_functions import create_pacjent, import_pacjent, create_wizyta, import_wizyta
+from schemas.client_schemas import CreateWizytaIndywidualna, ImportPacjent, ImportWizytaIndywidualna
+from utils.client_functions import import_pacjent, create_wizyta, import_wizyta
 # from utils.user_functions import create_user
 from datetime import datetime
 import ast
@@ -121,7 +121,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
 
     for index, row in df.iterrows():
         try:
-            # Convert row to dict and create CreatePacjent object
+            # Convert row to dict and create ImportPacjent object
             pacjent_data = row.to_dict()
             
             # Convert date strings to date objects
@@ -158,7 +158,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
                     detail=f"Invalid data in row {index}: {str(e)}"
                 )
             
-            # Use the create_pacjent function directly
+            # Use the import_pacjent function directly
             imported_patient = import_pacjent(db, pacjent) # TODO: halo tu nie powinno być import pacjent???
             
             success_count += 1
@@ -305,7 +305,7 @@ def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
 
     for index, row in df.iterrows():
         try:
-            # Convert row to dict and create CreatePacjent object
+            # Convert row to dict and create ImportPacjent object
             wizyta_data = row.to_dict()
             
             # Convert date strings to date objects
@@ -342,7 +342,7 @@ def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
                     detail=f"Invalid data in row {index}: {str(e)}"
                 )
             
-            # Use the create_pacjent function directly
+            # Use the create_wizyta function directly
             created_wizyta = create_wizyta(db, wizyta)
             
             success_count += 1
