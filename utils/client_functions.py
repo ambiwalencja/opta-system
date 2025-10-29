@@ -11,6 +11,10 @@ from auth.hashing import Hash
 from datetime import datetime
 from fastapi import HTTPException, status
 
+from sqlalchemy import func, distinct
+from sqlalchemy.orm import aliased
+
+
 def check_pacjent_duplicates(db: Session, pacjent_data: CreatePacjentBasic):
     # Check for duplicates - phone
     if pacjent_data.telefon:
@@ -205,14 +209,67 @@ def get_recent_wizyty(db: Session, id_uzytkownika: int, limit: int = 10):
     return wizyty
 
 def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
-    pacjent_list = db.query(Pacjent.Imie, Pacjent.Nazwisko, 
-                            Pacjent.Data_zgloszenia,
-                            Pacjent.Email, Pacjent.Telefon, Pacjent.Dzielnica,
-                            WizytaIndywidualna.Typ_wizyty,
-                            WizytaIndywidualna.Data # nie Pacjent.Data_ostatniej_wizyty bo to mogłaby być wizyta u innego użytkownika
-                            ).join(WizytaIndywidualna # inner join
-                            ).filter(WizytaIndywidualna.ID_uzytkownika == id_uzytkownika
-                            ).order_by(WizytaIndywidualna.Data.desc()
-                            ).limit(limit).all()
-    # TODO: tutaj sprawdzić jak to działa i czemu nie działa, to znaczy wywala się ale chyba z powodu złych danych. ale napierw dwuetapowe tworzenie pacjenta.
+    # Create an alias for WizytaIndywidualna to use in the subquery
+    WizytaAlias = aliased(WizytaIndywidualna)
+    LatestWizyta = aliased(WizytaIndywidualna)
+
+    # Subquery to get the top 10 patient IDs and their latest visit dates
+    latest_visits_subquery = (
+        db.query(
+            WizytaAlias.ID_pacjenta,
+            # func.max(WizytaAlias.Data).label('latest_visit_date'),
+            func.max(WizytaAlias.ID_wizyty).label('latest_visit_id')
+        )
+        .filter(WizytaAlias.ID_uzytkownika == id_uzytkownika)
+        .group_by(WizytaAlias.ID_pacjenta)
+        .order_by(func.max(WizytaAlias.Data).desc())
+        .limit(limit)
+        .subquery()
+    )
+    
+    # patient_ids = db.query(latest_visits_subquery.c.ID_pacjenta).all()
+    # print([id[0] for id in patient_ids])
+
+    # Main query to fetch patient details and the specific latest visit details
+    pacjent_list = (
+        db.query(
+             # Pacjent, # Selecting the full Pacjent object is often simpler here
+            Pacjent.ID_pacjenta,
+            Pacjent.Imie, 
+            Pacjent.Nazwisko,
+            Pacjent.Data_zgloszenia,
+            Pacjent.Email,
+            Pacjent.Telefon,
+            Pacjent.Dzielnica,
+            Pacjent.Ulica,
+            Pacjent.Nr_domu,
+            Pacjent.Nr_mieszkania,
+            Pacjent.Status_pacjenta,
+            LatestWizyta.ID_wizyty,
+            LatestWizyta.Typ_wizyty, # Use the alias for selection
+            LatestWizyta.Data          # Use the alias for selection
+        )
+        # JOIN 1: Filter Pacjent to the top 10 IDs (Explicit ON required)
+        .join(
+            latest_visits_subquery, 
+            Pacjent.ID_pacjenta == latest_visits_subquery.c.ID_pacjenta
+        )
+        # JOIN 2: Use the ALIAS (LatestWizyta) as the target, and provide the full compound ON clause.
+        .join(
+            LatestWizyta, # Use the ALIAS (the model) as the target
+            (LatestWizyta.ID_pacjenta == Pacjent.ID_pacjenta) & # <-- MUST re-introduce the FK link
+            (LatestWizyta.ID_wizyty == latest_visits_subquery.c.latest_visit_id)
+            # (LatestWizyta.Data == latest_visits_subquery.c.latest_visit_date)
+        )
+        .filter(LatestWizyta.ID_uzytkownika == id_uzytkownika)
+        .order_by(LatestWizyta.Data.desc())
+        .all()
+    )
+
+    # # Debug: Print results
+    # print(len(pacjent_list), "patients retrieved.")
+    # print("\nSelected patients with their most recent visits:")
+    # for pacjent, wizyta in pacjent_list:
+    #     print(f"Patient {pacjent.ID_pacjenta}: {pacjent.Imie} {pacjent.Nazwisko}, Last visit: {wizyta.Data}")
+
     return pacjent_list

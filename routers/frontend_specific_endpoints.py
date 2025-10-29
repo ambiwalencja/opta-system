@@ -1,7 +1,7 @@
 from sqlalchemy.orm.session import Session
 from fastapi import APIRouter, Depends, HTTPException, status
 from db.db_connect import get_db
-from schemas.client_schemas import DisplayPacjent, DisplayWizytaIndywidualna
+from schemas.client_schemas import DisplayPacjent, DisplayWizytaIndywidualna, DisplayPacjentWithWizyta
 from schemas.user_schemas import UserSignIn
 from db_models.client_data import Pacjent
 from utils import client_functions
@@ -14,7 +14,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get('/recent_pacjenci', response_model=list[DisplayPacjent])
+@router.get('/recent_pacjenci', response_model=list[DisplayPacjentWithWizyta])
 def show_recent_pacjenci_front(limit: int = 10, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     return client_functions.get_recent_pacjenci(db, current_user.ID_uzytkownika, limit)
 

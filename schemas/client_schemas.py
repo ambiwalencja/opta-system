@@ -197,6 +197,27 @@ class DisplayPacjent(BaseModel):
     status_pacjenta: Optional[str] = Field(None, alias="Status_pacjenta")
     # id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
 
+class DisplayPacjentWithWizyta(BaseModel):
+    # Pacjent fields
+    id_pacjenta: int = Field(..., alias="ID_pacjenta")
+    imie: str = Field(..., alias="Imie")
+    nazwisko: str = Field(..., alias="Nazwisko")
+    data_zgloszenia: date = Field(..., alias="Data_zgloszenia")
+    email: Optional[str] = Field(None, alias="Email")
+    telefon: str = Field(..., alias="Telefon")
+    dzielnica: str = Field(..., alias="Dzielnica")
+    # ulica: Optional[str] = Field(None, alias="Ulica")
+    # nr_domu: Optional[str] = Field(None, alias="Nr_domu")
+    # nr_mieszkania: Optional[str] = Field(None, alias="Nr_mieszkania")
+    status_pacjenta: Optional[str] = Field(None, alias="Status_pacjenta")
+    
+    # WizytaIndywidualna fields
+    typ_wizyty: str = Field(..., alias="Typ_wizyty")
+    data: date = Field(..., alias="Data")
+
+    class Config:
+        from_attributes = True
+
 class CreateWizytaIndywidualna(BaseModel):
     id_pacjenta: int = Field(..., alias="ID_pacjenta")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")

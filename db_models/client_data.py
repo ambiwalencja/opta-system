@@ -64,7 +64,7 @@ class WizytaIndywidualna(Base):
     ID_pacjenta = Column(Integer, ForeignKey('client_data.pacjenci.ID_pacjenta')) 
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Created = Column(DateTime)
-    Data = Column(Date) # z tego można wziąć rok, miesiąc
+    Data = Column(Date) # TODO: zmienić na "data_wizyty"
     Last_modified = Column(DateTime)
     Typ_wizyty = Column(String) # konsultacja prawna, konsultacja psychologiczna, wsparcie psychologiczne etc.
     Liczba_godzin = Column(Numeric(3, 1))
