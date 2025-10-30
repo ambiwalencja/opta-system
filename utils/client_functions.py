@@ -204,9 +204,6 @@ def create_wizyta(db: Session, wizyta_data: CreateWizytaIndywidualna):
 def import_wizyta(db: Session, wizyta_data: ImportWizytaIndywidualna):
     return core_save_wizyta(db, wizyta_data)
 
-def get_recent_wizyty(db: Session, id_uzytkownika: int, limit: int = 10):
-    wizyty = db.query(WizytaIndywidualna).filter(WizytaIndywidualna.ID_uzytkownika == id_uzytkownika).order_by(WizytaIndywidualna.Data.desc()).limit(limit).all()
-    return wizyty
 
 def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
     # Create an alias for WizytaIndywidualna to use in the subquery
@@ -273,3 +270,24 @@ def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
     #     print(f"Patient {pacjent.ID_pacjenta}: {pacjent.Imie} {pacjent.Nazwisko}, Last visit: {wizyta.Data}")
 
     return pacjent_list
+
+def get_recently_created_pacjenci(db: Session, limit: int = 10):
+    pacjent_list = (
+        db.query(Pacjent)
+        .order_by(Pacjent.Created.desc())
+        .limit(limit)
+        .all()
+    )
+    return pacjent_list
+
+def get_recently_active_users(db: Session, limit: int = 10):
+    user_list = (
+        db.query(User)
+        .filter(User.Last_login != None)
+        .order_by(User.Last_login.desc())
+        .limit(limit)
+        .all()
+    )
+    for user in user_list:
+        print(f"User {user.Username}: Last login: {user.Last_login}") 
+    return user_list

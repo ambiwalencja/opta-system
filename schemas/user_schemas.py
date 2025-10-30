@@ -2,6 +2,7 @@ from pydantic import BaseModel #, model_validator
 from pydantic.fields import Field
 from enum import Enum
 from typing import Optional, List
+from datetime import date, datetime
 # from fastapi import Depends
 # from sqlalchemy.orm import Session
 # from db.db_connect import get_db
@@ -50,6 +51,7 @@ class UserCreate(UserBase):
 
 class UserDisplay(UserBase):
     id_uzytkownika: int = Field(alias='ID_uzytkownika', serialization_alias='id_uzytkownika')
+    last_login: Optional[datetime] = Field(None, alias='Last_login', serialization_alias='last_login')
     
     class Config(): 
         from_attributes = True # to robi, że klasa UserDisplay rozumie, czyta obiekty sqlalchemy i jest w stanie zmapować na jsona
