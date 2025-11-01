@@ -14,6 +14,12 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import aliased
 
+def get_pacjent_by_id(db: Session, id_pacjenta: int):
+    pacjent = db.query(Pacjent).filter(Pacjent.ID_pacjenta == id_pacjenta).first()
+    if not pacjent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Pacjent with ID {id_pacjenta} not found")
+    return pacjent
 
 def check_pacjent_duplicates(db: Session, pacjent_data: CreatePacjentBasic):
     # Check for duplicates - phone
@@ -179,23 +185,33 @@ def create_pacjent_form(db: Session, id_pacjenta: int, pacjent_data: CreatePacje
 
 
 def core_save_wizyta(db: Session, wizyta_data: BaseModel):
-    # 2. Dynamic validation of typ wizyty
+    # 1. Dynamic validation of typ wizyty
     validate_choice(db, "Typ_wizyty", wizyta_data.typ_wizyty) # ???
 
-    # 3. Convert to dict with DB column names
+    # 2. Convert to dict with DB column names
     data_dict = wizyta_data.model_dump(by_alias = True, exclude_unset = True)
 
-    # 4. Add backend-generated fields
+    # 3. Add backend-generated fields
     data_dict["Created"] = datetime.now()
     data_dict["Last_modified"] = datetime.now()
     
-    # 6. Create SQLAlchemy object
+    # 4. Create SQLAlchemy object
     new_wizyta = WizytaIndywidualna(**data_dict)
     
-    # 7. actually add to DB
+    # 5. actually add to DB
     db.add(new_wizyta)
     db.commit()
     db.refresh(new_wizyta)
+
+    # 6. update pacjent's Last_wizyta field
+    pacjent = get_pacjent_by_id(db, new_wizyta.ID_pacjenta)
+    pacjent.Data_ostatniej_wizyty = new_wizyta.Data
+    
+    # 7. commit pacjent update
+    db.add(pacjent)
+    db.commit()
+    db.refresh(pacjent)
+
     return new_wizyta
 
 def create_wizyta(db: Session, wizyta_data: CreateWizytaIndywidualna):

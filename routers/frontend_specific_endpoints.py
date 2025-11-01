@@ -16,11 +16,7 @@ router = APIRouter(
 
 @router.get('/get_pacjent', response_model=DisplayPacjent) # TODO: tutaj response to display pacjent, czy może całość?
 def get_pacjent_for_front(id_pacjenta: int, db: Session = Depends(get_db)):
-    pacjent = db.query(Pacjent).filter(Pacjent.ID_pacjenta == id_pacjenta).first()
-    if not pacjent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Pacjent with ID {id_pacjenta} not found")
-    return pacjent
+    return client_functions.get_pacjent_by_id(db, id_pacjenta)
 
 @router.get('/recent_pacjenci', response_model=list[DisplayPacjentWithWizyta])
 def show_recent_pacjenci(limit: int = 10, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
