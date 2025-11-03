@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Numeric, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData
+from sqlalchemy import Column, Integer, Numeric, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData, Table
 from sqlalchemy.orm import relationship
 from db.db_connect import Base
 
@@ -77,6 +77,13 @@ class WizytaIndywidualna(Base):
     pacjent = relationship('Pacjent', back_populates='wizyty_indywidualne')
     uzytkownik = relationship('User', back_populates='wizyty_indywidualne')
 
+prowadzacy_grupy = Table(
+    'prowadzacy_grupy', Base.metadata,
+    Column('ID_uzytkownika', Integer, ForeignKey('user_data.users.ID_uzytkownika'), primary_key=True),
+    Column('ID_grupy', Integer, ForeignKey('client_data.grupy.ID_grupy'), primary_key=True)
+    # You might also add metadata like 'date_joined' here if needed
+)
+
 class Grupa(Base):
     __tablename__ = "grupy"
     __table_args__ = {'schema': 'client_data'}
@@ -85,15 +92,17 @@ class Grupa(Base):
     Nazwa_grupy = Column(String)
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
-    Prowadzacy = Column(JSON) # Lista ID uzytkownikow # TODO: czy to też powinno być jakoś obsłużone w formie foreign keys? tutaj byłaby relacja many to many
-    Liczba_spotkań = Column(Integer)
+    # Prowadzacy = Column(JSON) # Lista ID uzytkownikow - zamiast tego robimy many-to-many relationship
+    Data_rozpoczecia = Column(Date)
+    Data_zakonczenia = Column(Date)
+    Liczba_spotkan = Column(Integer)
     Liczba_godzin = Column(Numeric(3, 1)) # opcjonalne, na razie zostawmy
     Typ_grupy = Column(String) # warsztat, czy grupa wsparcia, czy trening, etc
     Rezultaty = Column(String)
 
     spotkania_grupowe = relationship('SpotkanieGrupowe', back_populates='grupa')
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
-    uzytkownik = relationship('User', back_populates='grupy')
+    prowadzacy = relationship('User', secondary=prowadzacy_grupy, back_populates='grupy') # many-to-many
 
 
 class SpotkanieGrupowe(Base):

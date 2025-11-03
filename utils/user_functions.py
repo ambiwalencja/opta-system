@@ -48,6 +48,17 @@ def format_datetime(dt: datetime) -> str:
     # jeśli będzie taka funkcja wykorzystaywana w innych schemach też, to przenieść do osobnego pliku
     return dt.strftime("%d.%m.%Y, %H:%M")
 
+def get_recently_active_users(db: Session, limit: int = 10):
+    user_list = (
+        db.query(User)
+        .filter(User.Last_login != None)
+        .order_by(User.Last_login.desc())
+        .limit(limit)
+        .all()
+    )
+    for user in user_list:
+        print(f"User {user.Username}: Last login: {user.Last_login}") 
+    return user_list
 
 # async def validate_user_update_data(
 #     db: Session,

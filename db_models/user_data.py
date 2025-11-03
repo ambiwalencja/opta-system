@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON
 from sqlalchemy.orm import relationship
 from db.db_connect import Base
+from db_models.client_data import prowadzacy_grupy
 
 
 class User(Base):
@@ -16,6 +17,7 @@ class User(Base):
     Specjalista = Column(JSON) # psycholog/prawnik itd. - może być więcej niż jedna specjalizacja
     Role = Column(String)
     Status = Column(String) # active/inactive
+    
     pacjenci = relationship("Pacjent", back_populates="uzytkownik")
     wizyty_indywidualne = relationship('WizytaIndywidualna', back_populates="uzytkownik")
-    grupy = relationship('Grupa', back_populates='uzytkownik')
+    grupy = relationship("Grupa", secondary=prowadzacy_grupy, back_populates="prowadzacy")

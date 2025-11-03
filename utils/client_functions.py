@@ -1,10 +1,11 @@
 
-from db_models.client_data import Pacjent, WizytaIndywidualna
+from db_models.client_data import Pacjent, WizytaIndywidualna, Grupa
 from db_models.config import PossibleValues
 from db_models.user_data import User
 from schemas.client_schemas import (
     BaseModel, CreatePacjentBasic, CreatePacjentForm, DisplayPacjent, ImportPacjent, UpdatePacjent,
-    CreateWizytaIndywidualna, DisplayWizytaIndywidualna, ImportWizytaIndywidualna
+    CreateWizytaIndywidualna, DisplayWizytaIndywidualna, ImportWizytaIndywidualna,
+    CreateGrupa
 )
 from sqlalchemy.orm.session import Session
 from auth.hashing import Hash
@@ -88,7 +89,6 @@ def validate_choice_fields(db: Session, pacjent_data: BaseModel): # zmieniłam z
                     validate_choice(db, field_name, item)
             else:
                 validate_choice(db, field_name, field_value)
-
 
 def create_pacjent_basic(db: Session, pacjent_data: CreatePacjentBasic, id_uzytkownika: int):
     # 1. Check for duplicates
@@ -183,7 +183,6 @@ def update_pacjent(db: Session, id_pacjenta: int, pacjent_data: UpdatePacjent):
 def create_pacjent_form(db: Session, id_pacjenta: int, pacjent_data: CreatePacjentForm):
     return core_update_pacjent(db, id_pacjenta, pacjent_data)
 
-
 def core_save_wizyta(db: Session, wizyta_data: BaseModel):
     # 1. Dynamic validation of typ wizyty
     validate_choice(db, "Typ_wizyty", wizyta_data.typ_wizyty) # ???
@@ -219,7 +218,6 @@ def create_wizyta(db: Session, wizyta_data: CreateWizytaIndywidualna):
 
 def import_wizyta(db: Session, wizyta_data: ImportWizytaIndywidualna):
     return core_save_wizyta(db, wizyta_data)
-
 
 def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
     # Create an alias for WizytaIndywidualna to use in the subquery
@@ -296,14 +294,49 @@ def get_recently_created_pacjenci(db: Session, limit: int = 10):
     )
     return pacjent_list
 
-def get_recently_active_users(db: Session, limit: int = 10):
-    user_list = (
-        db.query(User)
-        .filter(User.Last_login != None)
-        .order_by(User.Last_login.desc())
+def create_grupa(db: Session, grupa_data: CreateGrupa, id_uzytkownika: int):
+    # Validate value of Typ_grupy
+    validate_choice(db, "Typ_grupy", grupa_data.typ_grupy)
+
+    # Convert to dict with DB column names
+    data_dict = grupa_data.model_dump(by_alias = True, exclude={'prowadzacy'})
+    data_dict["Created"] = datetime.now()
+    data_dict["Last_modified"] = datetime.now()
+    data_dict["ID_uzytkownika"] = id_uzytkownika  # creator
+
+    # Create SQLAlchemy object
+    new_grupa = Grupa(**data_dict)
+    
+    # Fetch the User objects based on the list of IDs
+    id_prowadzacych = grupa_data.prowadzacy or []
+    if id_prowadzacych:
+        # Fetch the User objects WHERE User.id is IN the provided list
+        prowadzacy_to_add = db.query(User).filter(User.ID_uzytkownika.in_(id_prowadzacych)).all()
+        
+        # Assign the relationship using the relationship collection
+        new_grupa.prowadzacy.extend(prowadzacy_to_add)
+    
+    # actually add to DB
+    db.add(new_grupa)
+    db.commit()
+    db.refresh(new_grupa)
+
+    return new_grupa
+
+def get_recently_added_groups(db: Session, limit: int = 10):
+    grupa_list = (
+        db.query(Grupa)
+        .order_by(Grupa.Created.desc())
         .limit(limit)
         .all()
     )
-    for user in user_list:
-        print(f"User {user.Username}: Last login: {user.Last_login}") 
-    return user_list
+    return grupa_list
+
+def get_groups_for_user(db: Session, id_uzytkownika: int):
+    grupa_list = (
+        db.query(Grupa)
+        .join(Grupa.prowadzacy)  # Join with the User table through the relationship
+        .filter(User.ID_uzytkownika == id_uzytkownika)  # Filter by the specific user ID
+        .all()
+    )
+    return grupa_list

@@ -62,7 +62,6 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
         'full_name': user.Full_name,
         'role': user.Role
     }
-# TODO: kiedy używać response model, a kiedy takiego returna w diccie?
 
 @router.post('/login_form') # do testowania, do autoryzacji w docsach
 def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -81,7 +80,6 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
         'token_type': 'bearer'
     }
 
-
 @router.post("/refresh")
 async def refresh_token(data: TokenRequest, db: Session = Depends(get_db)):
     refresh_token = data.refresh_token
@@ -96,7 +94,6 @@ async def refresh_token(data: TokenRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserDisplay)
 def get_me(current_user: User = Depends(get_user_from_token("access_token"))):
     return current_user
-
 
 @router.post('/reset')
 def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):

@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from db.db_connect import get_db
 from schemas.client_schemas import (
     CreatePacjentBasic, CreatePacjentForm, DisplayPacjent, UpdatePacjent,
-    CreateWizytaIndywidualna, DisplayWizytaIndywidualna
+    CreateWizytaIndywidualna, DisplayWizytaIndywidualna,
+    CreateGrupa, DisplayGrupa
 )
 from db_models.client_data import Pacjent
 from utils import client_functions
@@ -38,3 +39,6 @@ def get_pacjent_for_merge(id_pacjenta: int, db: Session = Depends(get_db)):
 def create_wizyta_indywidualna(request: CreateWizytaIndywidualna, db: Session = Depends(get_db)):
     return client_functions.create_wizyta(db, request)
 
+@router.post('/group/create', response_model=DisplayGrupa)
+def create_grupa(request: CreateGrupa, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+    return client_functions.create_grupa(db, request, current_user.ID_uzytkownika)

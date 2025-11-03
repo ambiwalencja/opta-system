@@ -1,10 +1,13 @@
 from sqlalchemy.orm.session import Session
 from fastapi import APIRouter, Depends, HTTPException, status
 from db.db_connect import get_db
-from schemas.client_schemas import DisplayPacjent, DisplayWizytaIndywidualna, DisplayPacjentWithWizyta
+from schemas.client_schemas import (
+    DisplayPacjent, DisplayWizytaIndywidualna, DisplayPacjentWithWizyta,
+    DisplayGrupa
+)
 from schemas.user_schemas import UserSignIn, UserDisplay
-from db_models.client_data import Pacjent
-from utils import client_functions
+# from db_models.client_data import Pacjent
+from utils import client_functions, user_functions
 from auth.oauth2 import get_user_from_token
 
 
@@ -40,4 +43,15 @@ def show_recently_active_users(limit: int = 10, db: Session = Depends(get_db), c
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail=f'You are not an admin')
-    return client_functions.get_recently_active_users(db, limit)
+    return user_functions.get_recently_active_users(db, limit)
+
+@router.get('/recently_added_groups', response_model=list[DisplayGrupa])
+def show_recently_added_groups(limit: int = 10, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+            detail=f'You are not an admin')
+    return client_functions.get_recently_added_groups(db, limit)
+
+@router.get('/my_groups', response_model=list[DisplayGrupa])
+def show_my_groups(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    return client_functions.get_groups_for_user(db, current_user.ID_uzytkownika)
