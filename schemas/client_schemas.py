@@ -9,7 +9,7 @@ class CreatePacjentBasic(BaseModel):
     imie: str = Field(..., alias="Imie")
     nazwisko: str = Field(..., alias="Nazwisko")
     email: Optional[str] = Field(None, alias="Email")
-    telefon: str = Field(..., alias="Telefon")
+    telefon: Optional[str] = Field(None, alias="Telefon") # Optional because of old_db missing values
     dzielnica: str = Field(..., alias="Dzielnica")
     
     @field_validator('telefon')
