@@ -50,3 +50,7 @@ def show_recently_added_groups(limit: int = 10, db: Session = Depends(get_db), c
 @router.get('/my_groups', response_model=list[DisplayGrupa])
 def show_my_groups(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     return grupa_functions.get_groups_for_user(db, current_user.ID_uzytkownika)
+
+@router.get('/my_current_groups', response_model=list[DisplayGrupa])
+def show_my_current_groups(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    return grupa_functions.get_current_groups_for_user(db, current_user.ID_uzytkownika)

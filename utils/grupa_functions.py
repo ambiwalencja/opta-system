@@ -1,6 +1,7 @@
 from datetime import datetime
 # from fastapi import HTTPException, status
 # from sqlalchemy import func, distinct
+from sqlalchemy import or_
 # from sqlalchemy.orm import aliased
 from sqlalchemy.orm.session import Session
 
@@ -57,6 +58,20 @@ def get_groups_for_user(db: Session, id_uzytkownika: int):
         db.query(Grupa)
         .join(Grupa.prowadzacy)  # Join with the User table through the relationship
         .filter(User.ID_uzytkownika == id_uzytkownika)  # Filter by the specific user ID
+        .all()
+    )
+    return grupa_list
+
+def get_current_groups_for_user(db: Session, id_uzytkownika: int):
+    current_date = datetime.now().date()
+    grupa_list = (
+        db.query(Grupa)
+        .join(Grupa.prowadzacy)
+        .filter(
+            User.ID_uzytkownika == id_uzytkownika,
+            or_(Grupa.Data_zakonczenia >= current_date, 
+                Grupa.Data_zakonczenia == None)
+        )
         .all()
     )
     return grupa_list
