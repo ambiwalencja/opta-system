@@ -1,16 +1,21 @@
 import pandas as pd
-# from old_db.old_db_connect import engine
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 from fastapi import HTTPException
-from schemas.client_schemas import CreateWizytaIndywidualna, ImportPacjent, ImportWizytaIndywidualna
-from utils.client_functions import import_pacjent, create_wizyta, import_wizyta
-# from utils.user_functions import create_user
 from datetime import datetime
 import ast
 from io import BytesIO
 from typing import Union
+
+from schemas.pacjent_schemas import ImportPacjent
+from schemas.wizyta_schemas import CreateWizytaIndywidualna, ImportWizytaIndywidualna
 from schemas.user_schemas import UserCreate
+
+from utils.pacjent_functions import import_pacjent
+from utils.wizyta_functions import create_wizyta, import_wizyta
+
+
+
 
 def import_table_to_dataframe(table_name: str, db: Session, schema: str = None) -> pd.DataFrame:
     try:
@@ -21,7 +26,6 @@ def import_table_to_dataframe(table_name: str, db: Session, schema: str = None) 
     except Exception as e:
         print(f"Error loading data from database: {e}")
         return None
-
 
 def import_users_from_csv_complex(file_path: str) -> list[UserCreate]:
     """Import users from CSV file and convert to UserBase objects.
@@ -105,7 +109,7 @@ def reset_pacjent_sequence(db: Session) -> None:
         print(f"Error resetting pacjenci ID sequence: {e}")
 
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
-    # df = df.head(100) # for testing, limit
+    df = df.head(100) # for testing, limit
     # with open('test10.csv', 'w', newline='', encoding='utf-8') as f:
     #     df.to_csv(f, index=False)
 
@@ -159,7 +163,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
                 )
             
             # Use the import_pacjent function directly
-            imported_patient = import_pacjent(db, pacjent) # TODO: halo tu nie powinno być import pacjent???
+            imported_patient = import_pacjent(db, pacjent, id_uzytkownika=1)
             
             success_count += 1
             # print(f"Successfully imported patient {pacjent.imie} {pacjent.nazwisko}")
@@ -209,7 +213,7 @@ def reset_wizyta_sequence(db: Session) -> None:
         print(f"Error resetting wizyty ID sequence: {e}")
 
 def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
-    df = df.head(1000) # for testing, limit
+    df = df.head(100) # for testing, limit
     # with open('test_wizyty.csv', 'w', newline='', encoding='utf-8') as f:
     #     df.to_csv(f, index=False)
 

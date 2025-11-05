@@ -122,7 +122,6 @@ class SpotkanieGrupowe(Base):
     grupa = relationship('Grupa', back_populates='spotkania_grupowe')
     
 
-
 class UczestnikGrupy(Base):
     __tablename__ = "uczestnicy_grupy"
     __table_args__ = {'schema': 'client_data'}

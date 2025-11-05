@@ -1,5 +1,5 @@
-from typing import Optional, List, Any
-from datetime import date, datetime
+from typing import Optional, List
+from datetime import date #, datetime
 from pydantic import BaseModel, Field, model_validator, field_validator
 import re
 
@@ -217,56 +217,4 @@ class DisplayPacjentWithWizyta(BaseModel):
     class Config:
         from_attributes = True
 
-class CreateWizytaIndywidualna(BaseModel):
-    id_pacjenta: int = Field(..., alias="ID_pacjenta")
-    id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
-    data: date = Field(..., alias="Data")
-    typ_wizyty: str = Field(..., alias="Typ_wizyty")
-    liczba_godzin: float = Field(..., alias="Liczba_godzin")
-    notatka_diagnoza_sytuacji: Optional[str] = Field(None, alias="Notatka_diagnoza_sytuacji")
-    notatka_opis_sytuacji: Optional[str] = Field(None, alias="Notatka_opis_sytuacji")
-    notatka_indywidualny_plan: Optional[str] = Field(None, alias="Notatka_indywidualny_plan")
-    notatka_rezultaty: Optional[str] = Field(None, alias="Notatka_rezultaty")
-    notatka_odeslanie_do_innych: Optional[str] = Field(None, alias="Notatka_odeslanie_do_innych")
-
-    class Config():
-        from_attributes = True
-        validate_by_name = True
-        validate_by_alias = True
-
-class ImportWizytaIndywidualna(CreateWizytaIndywidualna):
-    id_wizyty: int = Field(..., alias="ID_wizyty")
-    id_uzytkownika: Optional[int] = Field(None, alias="ID_uzytkownika")
-
-class DisplayWizytaIndywidualna(BaseModel):
-    id_wizyty: int = Field(..., alias="ID_wizyty")
-    id_pacjenta: int = Field(..., alias="ID_pacjenta")
-    data: date = Field(..., alias="Data")
-    typ_wizyty: str = Field(..., alias="Typ_wizyty")
-    liczba_godzin: float = Field(..., alias="Liczba_godzin")
-    id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
-
-class CreateGrupa(BaseModel):
-    nazwa_grupy: str = Field(..., alias="Nazwa_grupy")
-    data_rozpoczecia: date = Field(..., alias="Data_rozpoczecia")
-    data_zakonczenia: Optional[date] = Field(None, alias="Data_zakonczenia")
-    typ_grupy: str = Field(..., alias="Typ_grupy")
-    liczba_spotkan: Optional[int] = Field(None, alias="Liczba_spotkan")
-    liczba_godzin: Optional[float] = Field(None, alias="Liczba_godzin")
-    prowadzacy: Optional[List[int]] = Field(None)
-
-    class Config():
-        from_attributes = True
-        validate_by_name = True
-        validate_by_alias = True
-
-class DisplayProwadzacy(BaseModel):
-    id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
-    full_name: str = Field(..., alias="Full_name")
-
-class DisplayGrupa(CreateGrupa):
-    id_grupy: int = Field(..., alias="ID_grupy")
-    id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
-    created: datetime = Field(..., alias="Created")
-    prowadzacy: Optional[List[DisplayProwadzacy]] = Field(None)
 

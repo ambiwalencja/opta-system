@@ -1,10 +1,10 @@
+from sqlalchemy.orm.session import Session
+from fastapi import HTTPException, status as http_status
+from datetime import datetime
 
+from auth.hashing import Hash
 from db_models.user_data import User
 from schemas.user_schemas import UserBase
-from sqlalchemy.orm.session import Session
-from auth.hashing import Hash
-from datetime import datetime
-from fastapi import HTTPException, status as http_status
 
 
 async def create_user(db: Session, request: UserBase):

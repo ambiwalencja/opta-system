@@ -1,19 +1,23 @@
 from sqlalchemy.orm.session import Session
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 import os
-from db.db_connect import get_db
-from schemas.user_schemas import UserCreate, UserDisplay, UserSignIn, TokenRequest, RoleEnum, StatusEnum, UserUpdate
-from db_models.user_data import User
-from db_models.config import PossibleValues
-from utils import user_functions
-from auth.hashing import Hash
-from auth.oauth2 import create_access_token, create_refresh_token #, get_current_user
-from auth.oauth2 import get_user_from_token_raw, get_user_from_token
 # from typing import Optional
 from io import BytesIO
-from fastapi import UploadFile, File
+
+from auth.hashing import Hash
+from auth.oauth2 import create_access_token, create_refresh_token
+from auth.oauth2 import get_user_from_token_raw, get_user_from_token
+from db.db_connect import get_db
+from db_models.user_data import User
+from db_models.config import PossibleValues
 from old_db.data_import import import_users_from_csv_simple
+from schemas.user_schemas import (
+    UserCreate, UserDisplay, UserSignIn, TokenRequest, RoleEnum, 
+    StatusEnum, UserUpdate
+)
+from utils import user_functions
 from utils.validation import validate_specialist_types
 
 
