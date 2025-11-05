@@ -66,6 +66,7 @@ def transform_column_id_uzytkownika(user_column_in_pacjenci: pd.Series):
 
 
 def replace_user_names_with_ids(user_column_in_pacjenci: pd.Series, df_users: pd.DataFrame):
+    print("Replacing user names with IDs...")
     if df_users is None or df_users.empty:
         raise HTTPException(
             status_code=400,
