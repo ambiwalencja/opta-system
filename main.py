@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
 import os
 from db import db_connect
@@ -50,9 +51,57 @@ if old_db_enabled:
     initialize_old_db()
     app.include_router(old_db_endpoints.router)
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return "OPTA System"
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>OPTA System</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    background-color: #f5f5f5;
+                }
+                .container {
+                    text-align: center;
+                }
+                h1 {
+                    color: #333;
+                    margin-bottom: 30px;
+                }
+                .docs-button {
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 15px 32px;
+                    text-decoration: none;
+                    display: inline-block;
+                    font-size: 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    border: none;
+                    transition: background-color 0.3s;
+                }
+                .docs-button:hover {
+                    background-color: #45a049;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>OPTA System</h1>
+                <p>System dokumentacji i ewaluacji OPTA</p>
+                <a href="/docs" class="docs-button">Dokumentacja API</a>
+            </div>
+        </body>
+    </html>
+    """
+    return html_content
 
 db_connect.create_schema('client_data')
 db_connect.create_schema('user_data')
