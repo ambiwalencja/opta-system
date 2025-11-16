@@ -31,3 +31,11 @@ class DisplayWizytaIndywidualna(BaseModel):
     typ_wizyty: str = Field(..., alias="Typ_wizyty")
     liczba_godzin: float = Field(..., alias="Liczba_godzin")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
+
+class UpdateWizytaIndywidualna(CreateWizytaIndywidualna):
+    id_pacjenta: Optional[int] = Field(None, alias="ID_pacjenta")
+    id_uzytkownika: Optional[int] = Field(None, alias="ID_uzytkownika")
+    data: Optional[date] = Field(None, alias="Data")
+    typ_wizyty: Optional[str] = Field(None, alias="Typ_wizyty")
+    liczba_godzin: Optional[float] = Field(None, alias="Liczba_godzin")
+    

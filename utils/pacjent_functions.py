@@ -122,10 +122,7 @@ def import_pacjent(db: Session, pacjent_data: ImportPacjent, id_uzytkownika: int
 
 def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel): # BaseModel, żeby mógł przyjmować CreatePacjentForm i UpdatePacjent
     # 1. Check that pacjent exists and find it
-    existing_pacjent = db.query(Pacjent).filter(Pacjent.ID_pacjenta == id_pacjenta).first()
-    if not existing_pacjent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'Client with ID {id_pacjenta} does not exist')
+    existing_pacjent = get_pacjent_by_id(db, id_pacjenta)
     
     # 2. Dynamic validation of all choice fields
     validate_choice_fields(db, pacjent_data)

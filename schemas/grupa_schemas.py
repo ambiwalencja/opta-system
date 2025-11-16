@@ -27,3 +27,7 @@ class DisplayGrupa(CreateGrupa):
     created: datetime = Field(..., alias="Created")
     prowadzacy: Optional[List[DisplayProwadzacy]] = Field(None)
 
+class UpdateGrupa(CreateGrupa):
+    nazwa_grupy: Optional[str] = Field(None, alias="Nazwa_grupy")
+    data_rozpoczecia: Optional[date] = Field(None, alias="Data_rozpoczecia")
+    typ_grupy: Optional[str] = Field(None, alias="Typ_grupy")
