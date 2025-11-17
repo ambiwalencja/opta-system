@@ -10,10 +10,10 @@ from db_models.client_data import Pacjent, WizytaIndywidualna #, Grupa
 # from db_models.config import PossibleValues
 # from db_models.user_data import User
 # from schemas.pacjent_schemas import (
-#     BaseModel # , CreatePacjentBasic, CreatePacjentForm, DisplayPacjent, 
-#     # UpdatePacjent, ImportPacjent
+#     BaseModel # , PacjentCreateBasic, PacjentCreateForm, PacjentDisplay, 
+#     # PacjentUpdate, PacjentImport
 # )
-from schemas.wizyta_schemas import BaseModel, CreateWizytaIndywidualna, ImportWizytaIndywidualna, DisplayWizytaIndywidualna
+from schemas.wizyta_schemas import BaseModel, WizytaIndywidualnaCreate, WizytaIndywidualnaImport, WizytaIndywidualnaDisplay
 # from schemas.grupa_schemas import CreateGrupa, DisplayGrupa
 from utils.validation import validate_choice, validate_choice_fields
 from utils.pacjent_functions import get_pacjent_by_id
@@ -48,10 +48,10 @@ def core_save_wizyta(db: Session, wizyta_data: BaseModel):
 
     return new_wizyta
 
-def create_wizyta(db: Session, wizyta_data: CreateWizytaIndywidualna):
+def create_wizyta(db: Session, wizyta_data: WizytaIndywidualnaCreate):
     return core_save_wizyta(db, wizyta_data)
 
-def import_wizyta(db: Session, wizyta_data: ImportWizytaIndywidualna):
+def import_wizyta(db: Session, wizyta_data: WizytaIndywidualnaImport):
     return core_save_wizyta(db, wizyta_data)
 
 def get_wizyta_by_id(db: Session, id_wizyty: int):

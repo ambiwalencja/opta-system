@@ -9,10 +9,10 @@ from db_models.client_data import Pacjent, WizytaIndywidualna #, Grupa
 # from db_models.config import PossibleValues
 # from db_models.user_data import User
 from schemas.pacjent_schemas import (
-    BaseModel, CreatePacjentBasic, CreatePacjentForm, # DisplayPacjent, 
-    UpdatePacjent, ImportPacjent
+    BaseModel, PacjentCreateBasic, PacjentCreateForm, # PacjentDisplay, 
+    PacjentUpdate, PacjentImport
 )
-# from schemas.wizyta_schemas import CreateWizytaIndywidualna, DisplayWizytaIndywidualna
+# from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaDisplay
 # from schemas.grupa_schemas import CreateGrupa, DisplayGrupa
 from utils.validation import validate_choice, validate_choice_fields
 
@@ -24,7 +24,7 @@ def get_pacjent_by_id(db: Session, id_pacjenta: int):
                             detail=f"Pacjent with ID {id_pacjenta} not found")
     return pacjent
 
-def check_pacjent_duplicates(db: Session, pacjent_data: CreatePacjentBasic):
+def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
     # Check for duplicates - phone
     if pacjent_data.telefon:
         duplicate = db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first()
@@ -68,7 +68,7 @@ def check_pacjent_duplicates(db: Session, pacjent_data: CreatePacjentBasic):
         )
     return None 
 
-def create_pacjent_basic(db: Session, pacjent_data: CreatePacjentBasic, id_uzytkownika: int):
+def create_pacjent_basic(db: Session, pacjent_data: PacjentCreateBasic, id_uzytkownika: int):
     # 1. Check for duplicates
     check_pacjent_duplicates(db, pacjent_data)
     # 2. Dynamic validation of all choice fields (here - only dzielnica)
@@ -89,7 +89,7 @@ def create_pacjent_basic(db: Session, pacjent_data: CreatePacjentBasic, id_uzytk
     db.refresh(new_pacjent)
     return new_pacjent
 
-def import_pacjent(db: Session, pacjent_data: ImportPacjent, id_uzytkownika: int):
+def import_pacjent(db: Session, pacjent_data: PacjentImport, id_uzytkownika: int):
     # 1. Check for duplicates
     check_pacjent_duplicates(db, pacjent_data)
     # 2. Dynamic validation of all choice fields
@@ -120,7 +120,7 @@ def import_pacjent(db: Session, pacjent_data: ImportPacjent, id_uzytkownika: int
     db.refresh(new_pacjent)
     return new_pacjent
 
-def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel): # BaseModel, żeby mógł przyjmować CreatePacjentForm i UpdatePacjent
+def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel): # BaseModel, żeby mógł przyjmować PacjentCreateForm i PacjentUpdate
     # 1. Check that pacjent exists and find it
     existing_pacjent = get_pacjent_by_id(db, id_pacjenta)
     
@@ -153,10 +153,10 @@ def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel):
     db.refresh(existing_pacjent)
     return existing_pacjent
 
-def update_pacjent(db: Session, id_pacjenta: int, pacjent_data: UpdatePacjent):
+def update_pacjent(db: Session, id_pacjenta: int, pacjent_data: PacjentUpdate):
     return core_update_pacjent(db, id_pacjenta, pacjent_data)
 
-def create_pacjent_form(db: Session, id_pacjenta: int, pacjent_data: CreatePacjentForm):
+def create_pacjent_form(db: Session, id_pacjenta: int, pacjent_data: PacjentCreateForm):
     return core_update_pacjent(db, id_pacjenta, pacjent_data)
 
 def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):

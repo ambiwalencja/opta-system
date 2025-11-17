@@ -3,7 +3,7 @@ from datetime import date #, datetime
 from pydantic import BaseModel, Field #, model_validator, field_validator
 # import re
 
-class CreateWizytaIndywidualna(BaseModel):
+class WizytaIndywidualnaCreate(BaseModel):
     id_pacjenta: int = Field(..., alias="ID_pacjenta")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
     data: date = Field(..., alias="Data")
@@ -20,11 +20,11 @@ class CreateWizytaIndywidualna(BaseModel):
         validate_by_name = True
         validate_by_alias = True
 
-class ImportWizytaIndywidualna(CreateWizytaIndywidualna):
+class WizytaIndywidualnaImport(WizytaIndywidualnaCreate):
     id_wizyty: int = Field(..., alias="ID_wizyty")
     id_uzytkownika: Optional[int] = Field(None, alias="ID_uzytkownika")
 
-class DisplayWizytaIndywidualna(BaseModel):
+class WizytaIndywidualnaDisplay(BaseModel):
     id_wizyty: int = Field(..., alias="ID_wizyty")
     id_pacjenta: int = Field(..., alias="ID_pacjenta")
     data: date = Field(..., alias="Data")
@@ -32,7 +32,7 @@ class DisplayWizytaIndywidualna(BaseModel):
     liczba_godzin: float = Field(..., alias="Liczba_godzin")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
 
-class UpdateWizytaIndywidualna(CreateWizytaIndywidualna):
+class WizytaIndywidualnaUpdate(WizytaIndywidualnaCreate):
     id_pacjenta: Optional[int] = Field(None, alias="ID_pacjenta")
     id_uzytkownika: Optional[int] = Field(None, alias="ID_uzytkownika")
     data: Optional[date] = Field(None, alias="Data")

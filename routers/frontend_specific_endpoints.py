@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from auth.oauth2 import get_user_from_token
 from db.db_connect import get_db
 # from db_models.client_data import Pacjent
-from schemas.pacjent_schemas import DisplayPacjent, DisplayPacjentWithWizyta
-# from schemas.wizyta_schemas import DisplayWizytaIndywidualna
+from schemas.pacjent_schemas import PacjentDisplay, PacjentWithWizytaDisplay
+# from schemas.wizyta_schemas import WizytaIndywidualnaDisplay
 from schemas.grupa_schemas import DisplayGrupa
 from schemas.user_schemas import UserSignIn, UserDisplay
 from utils import pacjent_functions, user_functions, grupa_functions
@@ -17,16 +17,16 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get('/recent_pacjenci', response_model=list[DisplayPacjentWithWizyta])
+@router.get('/recent_pacjenci', response_model=list[PacjentWithWizytaDisplay])
 def show_recent_pacjenci(limit: int = 10, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     return pacjent_functions.get_recent_pacjenci(db, current_user.ID_uzytkownika, limit)
 
-# @router.get('/recent_wizyty', response_model=list[DisplayWizytaIndywidualna])
+# @router.get('/recent_wizyty', response_model=list[WizytaIndywidualnaDisplay])
 # def show_recent_wizyty_front(limit: int = 10, db: Session = Depends(get_db)):
 #     wizyty = wizyty_functions.get_recent_wizyty(db, limit)
 #     return wizyty
 
-@router.get('/recently_created_pacjenci', response_model=list[DisplayPacjent])
+@router.get('/recently_created_pacjenci', response_model=list[PacjentDisplay])
 def show_recently_created_pacjenci(limit: int = 10, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,

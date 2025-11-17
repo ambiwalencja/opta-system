@@ -4,14 +4,17 @@ from datetime import datetime
 from sqlalchemy import or_
 # from sqlalchemy.orm import aliased
 from sqlalchemy.orm.session import Session
+from sqlalchemy.orm import joinedload
 
 from auth.hashing import Hash
-from db_models.client_data import Grupa
+from db_models.client_data import Grupa, UczestnikGrupy
 # from db_models.config import PossibleValues
 from db_models.user_data import User
-# from schemas.pacjent_schemas import CreatePacjentBasic, CreatePacjentForm, DisplayPacjent, UpdatePacjent
-# from schemas.wizyta_schemas import CreateWizytaIndywidualna, DisplayWizytaIndywidualna
-from schemas.grupa_schemas import CreateGrupa, DisplayGrupa, UpdateGrupa
+# from schemas.pacjent_schemas import PacjentCreateBasic, PacjentCreateForm, PacjentDisplay, PacjentUpdate
+# from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaDisplay
+from schemas.grupa_schemas import (GrupaCreate, GrupaDisplay, 
+                                   GrupaUpdate, UczestnikGrupyCreate,
+                                   UczestnikGrupyDisplay)
 from utils.validation import validate_choice, validate_choice_fields
 
 def get_grupa_by_id(db: Session, id_grupy: int):
@@ -20,7 +23,7 @@ def get_grupa_by_id(db: Session, id_grupy: int):
         raise Exception(f"Grupa with ID {id_grupy} not found")
     return grupa
 
-def create_grupa(db: Session, grupa_data: CreateGrupa, id_uzytkownika: int):
+def create_grupa(db: Session, grupa_data: GrupaCreate, id_uzytkownika: int):
     # Validate value of Typ_grupy
     validate_choice(db, "Typ_grupy", grupa_data.typ_grupy)
 
@@ -81,7 +84,7 @@ def get_current_groups_for_user(db: Session, id_uzytkownika: int):
     )
     return grupa_list
 
-def update_grupa(db: Session, id_grupy: int, grupa_data: UpdateGrupa, id_uzytkownika: int):
+def update_grupa(db: Session, id_grupy: int, grupa_data: GrupaUpdate, id_uzytkownika: int):
     grupa = get_grupa_by_id(db, id_grupy)
 
     # Validate value of Typ_grupy
@@ -113,3 +116,34 @@ def update_grupa(db: Session, id_grupy: int, grupa_data: UpdateGrupa, id_uzytkow
     db.commit()
     db.refresh(grupa)
     return grupa
+
+def delete_grupa(db: Session, id_grupy: int):
+    grupa = get_grupa_by_id(db, id_grupy)
+    db.delete(grupa)
+    db.commit()
+    return {"detail": f"Grupa with ID {id_grupy} deleted successfully"}
+
+def create_uczestnik_grupy(db: Session, uczestnik_data: UczestnikGrupyCreate):
+    data_dict = uczestnik_data.model_dump(by_alias = True)
+    data_dict["Created"] = datetime.now()
+    data_dict["Last_modified"] = datetime.now()
+
+    new_uczestnik = UczestnikGrupy(**data_dict)
+
+    # grupa_obj = db.query(Grupa).get(data_dict["ID_grupy"])
+    # pacjent_obj = db.query(Pacjent).get(data_dict["ID_pacjenta"])
+    # if grupa_obj: new_uczestnik.grupa = grupa_obj
+    # if pacjent_obj: new_uczestnik.pacjent = pacjent_obj
+
+    db.add(new_uczestnik)
+    db.commit()
+    db.refresh(new_uczestnik)
+
+    return new_uczestnik
+    # uczestnik = (
+    #     db.query(UczestnikGrupy)
+    #     .options(joinedload(UczestnikGrupy.grupa), joinedload(UczestnikGrupy.pacjent))
+    #     .get(new_uczestnik.ID_uczestnika_grupy)
+    # )
+    # # Return validated Pydantic model (ensures response_model matches and uses aliases)
+    # return DisplayUczestnikGrupy.model_validate(uczestnik)

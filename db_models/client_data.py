@@ -103,25 +103,7 @@ class Grupa(Base):
     spotkania_grupowe = relationship('SpotkanieGrupowe', back_populates='grupa')
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
     prowadzacy = relationship('User', secondary=prowadzacy_grupy, back_populates='grupy') # many-to-many
-
-
-class SpotkanieGrupowe(Base):
-    __tablename__ = "spotkania_grupowe"
-    __table_args__ = {'schema': 'client_data'}
-    ID_spotkania = Column(Integer, primary_key=True)
-    ID_grupy = Column(Integer, ForeignKey('client_data.grupy.ID_grupy'))
-    ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
-    Created = Column(DateTime)
-    Last_modified = Column(DateTime)
-    Data = Column(Date)
-    Prowadzacy = Column(JSON) # opcjonalne, być może jest to zawsze to samo co przy grupie
-    Liczba_godzin = Column(Numeric(3, 1))
-    Obecni_uczestnicy = Column(JSON) # lista ID pacjentow
-    Notatka_przebieg = Column(String)
-
-    grupa = relationship('Grupa', back_populates='spotkania_grupowe')
-    
-
+ 
 class UczestnikGrupy(Base):
     __tablename__ = "uczestnicy_grupy"
     __table_args__ = {'schema': 'client_data'}
@@ -135,4 +117,19 @@ class UczestnikGrupy(Base):
 
     grupa = relationship('Grupa', back_populates='uczestnik_grupy')
     pacjent = relationship('Pacjent', back_populates='uczestnik_grupy')
-    
+
+class SpotkanieGrupowe(Base):
+    __tablename__ = "spotkania_grupowe"
+    __table_args__ = {'schema': 'client_data'}
+    ID_spotkania = Column(Integer, primary_key=True)
+    ID_grupy = Column(Integer, ForeignKey('client_data.grupy.ID_grupy'))
+    ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
+    Created = Column(DateTime)
+    Last_modified = Column(DateTime)
+    Data = Column(Date)
+    Prowadzacy = Column(JSON) # to jest zawsze to samo co przy grupie
+    Liczba_godzin = Column(Numeric(3, 1))
+    Obecni_uczestnicy = Column(JSON) # lista ID pacjentow
+    Notatka_przebieg = Column(String)
+
+    grupa = relationship('Grupa', back_populates='spotkania_grupowe')

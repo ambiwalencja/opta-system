@@ -3,7 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field #, model_validator, field_validator
 # import re
 
-class CreateGrupa(BaseModel):
+class GrupaCreate(BaseModel):
     nazwa_grupy: str = Field(..., alias="Nazwa_grupy")
     data_rozpoczecia: date = Field(..., alias="Data_rozpoczecia")
     data_zakonczenia: Optional[date] = Field(None, alias="Data_zakonczenia")
@@ -17,17 +17,59 @@ class CreateGrupa(BaseModel):
         validate_by_name = True
         validate_by_alias = True
 
-class DisplayProwadzacy(BaseModel):
+class ProwadzacyDisplay(BaseModel):
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
     full_name: str = Field(..., alias="Full_name")
 
-class DisplayGrupa(CreateGrupa):
+class GrupaDisplay(GrupaCreate):
     id_grupy: int = Field(..., alias="ID_grupy")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
     created: datetime = Field(..., alias="Created")
-    prowadzacy: Optional[List[DisplayProwadzacy]] = Field(None)
+    prowadzacy: Optional[List[ProwadzacyDisplay]] = Field(None)
 
-class UpdateGrupa(CreateGrupa):
+class GrupaUpdate(GrupaCreate):
     nazwa_grupy: Optional[str] = Field(None, alias="Nazwa_grupy")
     data_rozpoczecia: Optional[date] = Field(None, alias="Data_rozpoczecia")
     typ_grupy: Optional[str] = Field(None, alias="Typ_grupy")
+
+
+class UczestnikGrupyCreate(BaseModel):
+    id_grupy: int = Field(..., alias="ID_grupy")
+    id_pacjenta: int = Field(..., alias="ID_pacjenta")
+    ukonczenie: Optional[bool] = Field(None, alias="Ukonczenie")
+    rezultat: Optional[bool] = Field(None, alias="Rezultat")
+
+    class Config():
+        from_attributes = True
+        validate_by_name = True
+        validate_by_alias = True
+
+# class UczestnikDisplay(BaseModel):
+#     id_pacjenta: int = Field(..., alias="ID_pacjenta")
+#     full_name: str = Field(..., alias="Full_name")
+
+#     class Config():
+#         from_attributes = True
+#         validate_by_name = True
+#         validate_by_alias = True
+
+# class GrupaDisplayShort(BaseModel):
+#     id_grupy: int = Field(..., alias="ID_grupy")
+#     nazwa_grupy: str = Field(..., alias="Nazwa_grupy")
+
+#     class Config():
+#         from_attributes = True
+#         validate_by_name = True
+#         validate_by_alias = True
+
+class UczestnikGrupyDisplay(UczestnikGrupyCreate):
+    id_uczestnika_grupy: int = Field(..., alias="ID_uczestnika_grupy")
+    created: datetime = Field(..., alias="Created")
+    last_modified: datetime = Field(..., alias="Last_modified")
+    # grupa: DisplayGrupaShort = Field(...)
+    # pacjent: DisplayUczestnik = Field(...)
+
+    # class Config():
+    #     from_attributes = True
+    #     validate_by_name = True
+    #     validate_by_alias = True
