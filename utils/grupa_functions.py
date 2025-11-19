@@ -1,26 +1,22 @@
 from datetime import datetime
-# from fastapi import HTTPException, status
-# from sqlalchemy import func, distinct
+from fastapi import HTTPException, status
 from sqlalchemy import or_
-# from sqlalchemy.orm import aliased
 from sqlalchemy.orm.session import Session
 from sqlalchemy.orm import joinedload
 
-from auth.hashing import Hash
-from db_models.client_data import Grupa, UczestnikGrupy
-# from db_models.config import PossibleValues
+from db_models.client_data import Grupa, UczestnikGrupy, Pacjent
 from db_models.user_data import User
-# from schemas.pacjent_schemas import PacjentCreateBasic, PacjentCreateForm, PacjentDisplay, PacjentUpdate
-# from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaDisplay
+
 from schemas.grupa_schemas import (GrupaCreate, GrupaDisplay, 
                                    GrupaUpdate, UczestnikGrupyCreate,
-                                   UczestnikGrupyDisplay)
+                                   UczestnikGrupyDisplay, UczestnikGrupyUpdate)
 from utils.validation import validate_choice, validate_choice_fields
 
 def get_grupa_by_id(db: Session, id_grupy: int):
     grupa = db.query(Grupa).filter(Grupa.ID_grupy == id_grupy).first()
     if not grupa:
-        raise Exception(f"Grupa with ID {id_grupy} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Grupa with ID {id_grupy} not found")
     return grupa
 
 def create_grupa(db: Session, grupa_data: GrupaCreate, id_uzytkownika: int):
@@ -123,27 +119,69 @@ def delete_grupa(db: Session, id_grupy: int):
     db.commit()
     return {"detail": f"Grupa with ID {id_grupy} deleted successfully"}
 
+
+def check_uczestnik_grupy_duplicates(db: Session, id_grupy: int, id_pacjenta: int):
+    existing_entry = db.query(UczestnikGrupy).filter(
+        UczestnikGrupy.ID_grupy == id_grupy,
+        UczestnikGrupy.ID_pacjenta == id_pacjenta
+    ).first()
+    if existing_entry:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"UczestnikGrupy with ID_grupy {id_grupy} and ID_pacjenta {id_pacjenta} already exists"
+        )
+    
 def create_uczestnik_grupy(db: Session, uczestnik_data: UczestnikGrupyCreate):
     data_dict = uczestnik_data.model_dump(by_alias = True)
     data_dict["Created"] = datetime.now()
     data_dict["Last_modified"] = datetime.now()
-
+    
+    check_uczestnik_grupy_duplicates(db, data_dict["ID_grupy"], data_dict["ID_pacjenta"])
     new_uczestnik = UczestnikGrupy(**data_dict)
-
-    # grupa_obj = db.query(Grupa).get(data_dict["ID_grupy"])
-    # pacjent_obj = db.query(Pacjent).get(data_dict["ID_pacjenta"])
-    # if grupa_obj: new_uczestnik.grupa = grupa_obj
-    # if pacjent_obj: new_uczestnik.pacjent = pacjent_obj
 
     db.add(new_uczestnik)
     db.commit()
     db.refresh(new_uczestnik)
 
-    return new_uczestnik
-    # uczestnik = (
-    #     db.query(UczestnikGrupy)
-    #     .options(joinedload(UczestnikGrupy.grupa), joinedload(UczestnikGrupy.pacjent))
-    #     .get(new_uczestnik.ID_uczestnika_grupy)
-    # )
-    # # Return validated Pydantic model (ensures response_model matches and uses aliases)
-    # return DisplayUczestnikGrupy.model_validate(uczestnik)
+    uczestnik = (
+        db.query(UczestnikGrupy)
+        .options(joinedload(UczestnikGrupy.grupa), joinedload(UczestnikGrupy.pacjent))
+        .get(new_uczestnik.ID_uczestnika_grupy)
+    )
+    # Return validated Pydantic model (ensures response_model matches and uses aliases)
+    return UczestnikGrupyDisplay.model_validate(uczestnik)
+
+def get_uczestnik_grupy_by_id(db: Session, id_uczestnika_grupy: int):
+    uczestnik = db.query(UczestnikGrupy).get(id_uczestnika_grupy)
+    if not uczestnik:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"UczestnikGrupy with ID {id_uczestnika_grupy} not found")
+    return uczestnik
+
+def update_uczestnik_grupy(db: Session, id_uczestnika_grupy: int, uczestnik_data: UczestnikGrupyUpdate):
+    uczestnik = get_uczestnik_grupy_by_id(db, id_uczestnika_grupy)
+
+    data_dict = uczestnik_data.model_dump(by_alias = True, exclude_unset=True)
+    data_dict["Last_modified"] = datetime.now()
+
+    for key, value in data_dict.items():
+        setattr(uczestnik, key, value)
+
+    db.commit()
+    db.refresh(uczestnik)
+    return uczestnik
+
+def delete_uczestnik_grupy(db: Session, id_uczestnika_grupy: int):
+    uczestnik = get_uczestnik_grupy_by_id(db, id_uczestnika_grupy)
+    db.delete(uczestnik)
+    db.commit()
+    return {"detail": f"UczestnikGrupy with ID {id_uczestnika_grupy} deleted successfully"}
+
+def show_uczestnicy_grupy(db: Session, id_grupy: int):
+    uczestnicy = (
+        db.query(UczestnikGrupy)
+        .options(joinedload(UczestnikGrupy.pacjent))
+        .filter(UczestnikGrupy.ID_grupy == id_grupy)
+        .all()
+    )
+    return uczestnicy

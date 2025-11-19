@@ -113,7 +113,7 @@ class UczestnikGrupy(Base):
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
     Ukonczenie = Column(Boolean)
-    Rezultat = Column(Boolean)
+    Rezultat = Column(String)
 
     grupa = relationship('Grupa', back_populates='uczestnik_grupy')
     pacjent = relationship('Pacjent', back_populates='uczestnik_grupy')

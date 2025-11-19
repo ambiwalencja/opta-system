@@ -37,39 +37,39 @@ class UczestnikGrupyCreate(BaseModel):
     id_grupy: int = Field(..., alias="ID_grupy")
     id_pacjenta: int = Field(..., alias="ID_pacjenta")
     ukonczenie: Optional[bool] = Field(None, alias="Ukonczenie")
-    rezultat: Optional[bool] = Field(None, alias="Rezultat")
+    rezultat: Optional[str] = Field(None, alias="Rezultat")
 
     class Config():
         from_attributes = True
         validate_by_name = True
         validate_by_alias = True
 
-# class UczestnikDisplay(BaseModel):
-#     id_pacjenta: int = Field(..., alias="ID_pacjenta")
-#     full_name: str = Field(..., alias="Full_name")
+class UczestnikDisplay(BaseModel):
+    id_pacjenta: int = Field(..., alias="ID_pacjenta")
+    imie: str = Field(..., alias="Imie")
+    nazwisko: str = Field(..., alias="Nazwisko")
 
-#     class Config():
-#         from_attributes = True
-#         validate_by_name = True
-#         validate_by_alias = True
+    class Config():
+        from_attributes = True
+        validate_by_name = True
+        validate_by_alias = True
 
-# class GrupaDisplayShort(BaseModel):
-#     id_grupy: int = Field(..., alias="ID_grupy")
-#     nazwa_grupy: str = Field(..., alias="Nazwa_grupy")
+class GrupaDisplayShort(BaseModel):
+    id_grupy: int = Field(..., alias="ID_grupy")
+    nazwa_grupy: str = Field(..., alias="Nazwa_grupy")
 
-#     class Config():
-#         from_attributes = True
-#         validate_by_name = True
-#         validate_by_alias = True
+    class Config():
+        from_attributes = True
+        validate_by_name = True
+        validate_by_alias = True
 
 class UczestnikGrupyDisplay(UczestnikGrupyCreate):
     id_uczestnika_grupy: int = Field(..., alias="ID_uczestnika_grupy")
     created: datetime = Field(..., alias="Created")
     last_modified: datetime = Field(..., alias="Last_modified")
-    # grupa: DisplayGrupaShort = Field(...)
-    # pacjent: DisplayUczestnik = Field(...)
+    grupa: GrupaDisplayShort = Field(...)
+    pacjent: UczestnikDisplay = Field(...)
 
-    # class Config():
-    #     from_attributes = True
-    #     validate_by_name = True
-    #     validate_by_alias = True
+class UczestnikGrupyUpdate(BaseModel):
+    id_grupy: Optional[int] = Field(None, alias="ID_grupy")
+    id_pacjenta: Optional[int] = Field(None, alias="ID_pacjenta")
