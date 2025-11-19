@@ -30,3 +30,7 @@ def create_wizyta_indywidualna(request: WizytaIndywidualnaCreate, db: Session = 
 @router.put('/update/{id_wizyty}', response_model=WizytaIndywidualnaDisplay)
 def update_wizyta_indywidualna(id_wizyty: int, request: WizytaIndywidualnaUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return wizyta_functions.update_wizyta(db, id_wizyty, request)
+
+@router.delete('/delete/{id_wizyty}')
+def delete_wizyta_indywidualna(id_wizyty: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+    return wizyta_functions.delete_wizyta(db, id_wizyty)

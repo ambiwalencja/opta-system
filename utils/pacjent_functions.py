@@ -234,3 +234,9 @@ def get_recently_created_pacjenci(db: Session, limit: int = 10):
     )
     return pacjent_list
 
+def delete_pacjent(db: Session, id_pacjenta: int):
+    pacjent = get_pacjent_by_id(db, id_pacjenta)
+    db.delete(pacjent)
+    db.commit()
+    return {"detail": f"Pacjent with ID {id_pacjenta} deleted successfully"}
+

@@ -142,7 +142,7 @@ def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depe
         })
     return response_data
 
-@router.post('/delete')
+@router.delete('/delete')
 def delete_users(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))): 
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -155,7 +155,7 @@ def delete_users(username: str, db: Session = Depends(get_db), current_user: Use
     db.commit()
     return True
 
-@router.post('/deactivate')
+@router.put('/deactivate')
 def deactivate_user(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -170,7 +170,7 @@ def deactivate_user(username: str, db: Session = Depends(get_db), current_user: 
     db.refresh(user)
     return True
 
-@router.post('/activate')
+@router.put('/activate')
 def activate_user(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -185,7 +185,7 @@ def activate_user(username: str, db: Session = Depends(get_db), current_user: Us
     db.refresh(user)
     return True
 
-@router.post("/update", response_model=UserDisplay)
+@router.put("/update", response_model=UserDisplay)
 async def update_user_info(
     username: str, 
     request: UserUpdate,

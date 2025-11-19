@@ -33,5 +33,7 @@ def update_pacjent(id_pacjenta: int, request: PacjentUpdate, db: Session = Depen
 def get_pacjent(id_pacjenta: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return pacjent_functions.get_pacjent_by_id(db, id_pacjenta)
 
-
+@router.delete('/delete/{id_pacjenta}')
+def delete_pacjent(id_pacjenta: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+    return pacjent_functions.delete_pacjent(db, id_pacjenta)
 

@@ -92,3 +92,9 @@ def update_wizyta(db: Session, id_wizyty: int, wizyta_data: BaseModel):
         db.refresh(pacjent)
 
     return wizyta
+
+def delete_wizyta(db: Session, id_wizyty: int):
+    wizyta = get_wizyta_by_id(db, id_wizyty)
+    db.delete(wizyta)
+    db.commit()
+    return {"detail": f"Wizyta with ID {id_wizyty} deleted successfully"}
