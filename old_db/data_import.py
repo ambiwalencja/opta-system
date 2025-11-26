@@ -7,8 +7,8 @@ import ast
 from io import BytesIO
 from typing import Union
 
-from schemas.pacjent_schemas import ImportPacjent
-from schemas.wizyta_schemas import CreateWizytaIndywidualna, ImportWizytaIndywidualna
+from schemas.pacjent_schemas import PacjentImport
+from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaImport
 from schemas.user_schemas import UserCreate
 
 from utils.pacjent_functions import import_pacjent
@@ -125,7 +125,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
 
     for index, row in df.iterrows():
         try:
-            # Convert row to dict and create ImportPacjent object
+            # Convert row to dict and create PacjentImport object
             pacjent_data = row.to_dict()
             
             # Convert date strings to date objects
@@ -155,7 +155,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
             
             # Create Pydantic model
             try:
-                pacjent = ImportPacjent(**pacjent_data)
+                pacjent = PacjentImport(**pacjent_data)
             except Exception as e:
                 raise HTTPException(
                     status_code=422,
@@ -259,7 +259,7 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
             
             # Create Pydantic model
             try:
-                wizyta = ImportWizytaIndywidualna(**wizyta_data)
+                wizyta = WizytaIndywidualnaImport(**wizyta_data)
             except Exception as e:
                 raise HTTPException(
                     status_code=422,
@@ -309,7 +309,7 @@ def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
 
     for index, row in df.iterrows():
         try:
-            # Convert row to dict and create ImportPacjent object
+            # Convert row to dict and create PacjentImport object
             wizyta_data = row.to_dict()
             
             # Convert date strings to date objects
@@ -339,7 +339,7 @@ def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
             
             # Create Pydantic model
             try:
-                wizyta = CreateWizytaIndywidualna(**wizyta_data)
+                wizyta = WizytaIndywidualnaCreate(**wizyta_data)
             except Exception as e:
                 raise HTTPException(
                     status_code=422,

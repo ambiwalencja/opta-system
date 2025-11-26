@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, model_validator, field_validator
 import re
 
 
-class CreatePacjentBasic(BaseModel):
+class PacjentCreateBasic(BaseModel):
     data_zgloszenia: date = Field(..., alias="Data_zgloszenia")
     imie: str = Field(..., alias="Imie")
     nazwisko: str = Field(..., alias="Nazwisko")
@@ -41,7 +41,7 @@ class CreatePacjentBasic(BaseModel):
     #     )
 
 
-class CreatePacjentForm(BaseModel):
+class PacjentCreateForm(BaseModel):
     data_ostatniej_wizyty: Optional[date] = Field(None, alias="Data_ostatniej_wizyty")
     ulica: str = Field(..., alias="Ulica")
     nr_domu: str = Field(..., alias="Nr_domu")
@@ -93,7 +93,7 @@ class CreatePacjentForm(BaseModel):
     #     )
 
 
-class UpdatePacjent(BaseModel):
+class PacjentUpdate(BaseModel):
     data_zgloszenia: Optional[date] = Field(None, alias="Data_zgloszenia")
     data_ostatniej_wizyty: Optional[date] = Field(None, alias="Data_ostatniej_wizyty")
     imie: Optional[str] = Field(None, alias="Imie")
@@ -178,10 +178,10 @@ class UpdatePacjent(BaseModel):
         validate_by_alias=True
 
 
-class ImportPacjent(UpdatePacjent):
+class PacjentImport(PacjentUpdate):
     id_pacjenta: int = Field(..., alias="ID_pacjenta") 
 
-class DisplayPacjent(BaseModel):
+class PacjentDisplay(BaseModel):
     id_pacjenta: int = Field(..., alias="ID_pacjenta") 
     imie: str = Field(..., alias="Imie")
     nazwisko: str = Field(..., alias="Nazwisko")
@@ -196,7 +196,7 @@ class DisplayPacjent(BaseModel):
     status_pacjenta: Optional[str] = Field(None, alias="Status_pacjenta")
     # id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
 
-class DisplayPacjentWithWizyta(BaseModel):
+class PacjentWithWizytaDisplay(BaseModel):
     # Pacjent fields
     id_pacjenta: int = Field(..., alias="ID_pacjenta")
     imie: str = Field(..., alias="Imie")
