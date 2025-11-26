@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi_pagination import add_pagination
+
 from dotenv import load_dotenv
 import os
 from db import db_connect
@@ -13,10 +15,6 @@ from old_db import old_db_endpoints
 from old_db.old_db_connect import initialize_old_db
 
 
-# uvicorn main:app --reload
-# http://127.0.0.1:8000/docs
-
-
 if os.name == "nt":
     load_dotenv()
 
@@ -24,8 +22,9 @@ app = FastAPI(
     title="OPTA system",
     description="System dokumentacji i ewaluacji OPTA",
     version="0.1",
-    # lifespan=lifespan
 )
+
+add_pagination(app)
 
 origins = [
     "http://localhost:3000",

@@ -36,7 +36,7 @@ def validate_choice(db: Session, variable_name: str, chosen_value: str):
             detail=f"Invalid value '{chosen_value}' for {variable_name}. Allowed: {list(variable_with_pv.Possible_values.keys())}"
         )
 
-def validate_choice_fields(db: Session, data: BaseModel): # zmieniłam z CreatePacjent na BaseModel, żeby można było te przekazać PacjentUpdate
+def validate_choice_fields(db: Session, data: BaseModel): # zmieniłam z CreatePacjent na BaseModel, żeby można było te przekazać PacjentUpdate0
     data_dict = data.model_dump(by_alias=True, exclude_unset=True)
     
     for field_name, field_value in data_dict.items():

@@ -1,8 +1,11 @@
 from fastapi import HTTPException, status
 from datetime import datetime
-from sqlalchemy import func, distinct
-from sqlalchemy.orm import aliased
+from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc
+from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from typing import Optional, Dict, Any, List
 
 from auth.hashing import Hash
 from db_models.client_data import Pacjent, WizytaIndywidualna #, Grupa
@@ -15,6 +18,7 @@ from schemas.pacjent_schemas import (
 # from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaDisplay
 # from schemas.grupa_schemas import CreateGrupa, DisplayGrupa
 from utils.validation import validate_choice, validate_choice_fields
+from utils.safe_mappings import SORTABLE_FIELDS, FILTERING_FIELDS, SEARCHABLE_FIELDS
 
 
 def get_pacjent_by_id(db: Session, id_pacjenta: int):
@@ -240,3 +244,148 @@ def delete_pacjent(db: Session, id_pacjenta: int):
     db.commit()
     return {"detail": f"Pacjent with ID {id_pacjenta} deleted successfully"}
 
+def search_pacjenci(query: Query, search_term: str = None):
+    if search_term:
+        search_like = f"%{search_term}%"
+        query = query.filter(
+            (Pacjent.Imie.ilike(search_like)) | 
+            (Pacjent.Nazwisko.ilike(search_like)) |
+            (Pacjent.Email.ilike(search_like)) |
+            (Pacjent.Telefon.ilike(search_like))
+        )
+    return query
+
+def filter_pacjenci(query: Query, filters: List[str] = None):
+    # Parse filters from list of "field:value" strings
+    filter_params = {}
+    if filters:
+        for f in filters:
+            if ':' in f:
+                field, value = f.split(':', 1)
+                filter_params[field.strip()] = value.strip()
+
+    # FILTERING
+    for param_name, value_str in filter_params.items():
+        column_to_filter: Optional[Column] = FILTERING_FIELDS.get(param_name)
+        
+        if column_to_filter:
+            if isinstance(column_to_filter.type, Boolean):
+                if value_str.lower() in ('true', '1'):
+                    value = True
+                elif value_str.lower() in ('false', '0'):
+                    value = False
+                else:
+                    continue 
+            elif isinstance(column_to_filter.type, Date):
+                # Check if it's a date range (format: "2023-01-01,2023-12-31")
+                if ',' in value_str:
+                    try:
+                        date_parts = value_str.split(',')
+                        start_date = datetime.strptime(date_parts[0].strip(), "%Y-%m-%d").date()
+                        end_date = datetime.strptime(date_parts[1].strip(), "%Y-%m-%d").date()
+                        query = query.filter(column_to_filter.between(start_date, end_date))
+                        continue  # Skip the single value assignment below
+                    except (ValueError, IndexError):
+                        continue
+                else:
+                    # Single date value
+                    try:
+                        value = datetime.strptime(value_str, "%Y-%m-%d").date()
+                        query = query.filter(column_to_filter >= value)
+                        continue
+                    except ValueError:
+                        continue
+            elif isinstance(column_to_filter.type, Integer):
+                try:
+                    value = int(value_str)
+                except ValueError:
+                    continue
+            else:
+                value = value_str
+                
+            query = query.filter(column_to_filter == value)
+    return query
+
+def sort_pacjenci(query: Query, sort_by: str, sort_direction: str):
+    sort_column: Optional[Column] = SORTABLE_FIELDS.get(sort_by)
+    if not sort_column:
+        sort_column = Pacjent.ID_pacjenta
+
+    if sort_direction == 'desc':
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(sort_column)
+    return query
+
+def get_all_pacjenci(
+        db: Session, 
+        sort_by: str, 
+        sort_direction: str,
+        search_term: str = None,
+        filters: List[str] = None
+    ) -> Page[Pacjent]:
+    
+    query = db.query(Pacjent)
+    query = search_pacjenci(query, search_term)
+    query = filter_pacjenci(query, filters)
+    query = sort_pacjenci(query, sort_by, sort_direction)
+
+    return paginate(query)
+
+def apply_dynamic_query_params(
+    query: Query,
+    sort_by: str,
+    sort_direction: str,
+    search_term: Optional[str],
+    filter_params: Dict[str, Any]
+) -> Query:
+    
+    # SEARCHING
+    if search_term:
+        search_like = f"%{search_term}%"
+        query = query.filter(
+            (Pacjent.Imie.ilike(search_like)) | 
+            (Pacjent.Nazwisko.ilike(search_like)) |
+            (Pacjent.Email.ilike(search_like)) |
+            (Pacjent.Telefon.ilike(search_like))
+        )
+
+    # FILTERING
+    for param_name, value_str in filter_params.items():
+        column_to_filter: Optional[Column] = FILTERING_FIELDS.get(param_name)
+        
+        if column_to_filter:
+            if isinstance(column_to_filter.type, Boolean):
+                if value_str.lower() in ('true', '1'):
+                    value = True
+                elif value_str.lower() in ('false', '0'):
+                    value = False
+                else:
+                    continue 
+            elif isinstance(column_to_filter.type, Date):
+                try:
+                    value = datetime.strptime(value_str, "%Y-%m-%d").date() # TODO: do zmiany później bo będziemy zmieniać na rok i miesiąc
+                except ValueError:
+                    continue
+            elif isinstance(column_to_filter.type, Integer):
+                try:
+                    value = int(value_str)
+                except ValueError:
+                    continue
+            else:
+                value = value_str
+                
+            query = query.filter(column_to_filter == value)
+    
+    # SORTING
+    sort_column: Optional[Column] = SORTABLE_FIELDS.get(sort_by)
+
+    if not sort_column:
+        sort_column = Pacjent.Created
+
+    if sort_direction.lower() == 'desc':
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(sort_column)
+
+    return query
