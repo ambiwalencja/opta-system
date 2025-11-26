@@ -1,4 +1,3 @@
-from sqlalchemy import desc, Column
 from db_models.client_data import Pacjent
 
 SORTABLE_FIELDS = {
