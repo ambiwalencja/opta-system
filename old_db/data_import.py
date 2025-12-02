@@ -233,7 +233,7 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
             wizyta_data = row.to_dict()
             
             # Convert date strings to date objects
-            for date_field in ['Data']:
+            for date_field in ['Data_wizyty']:
                 date_value = wizyta_data.get(date_field)
                 if pd.isna(date_value): # NaN, NaT
                     wizyta_data[date_field] = None
@@ -269,7 +269,7 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
             created_wizyta = import_wizyta(db, wizyta)
             
             success_count += 1
-            # print(f"Successfully imported wizyta {wizyta.data} {wizyta.typ_wizyty}")
+            # print(f"Successfully imported wizyta {wizyta.data_wizyty} {wizyta.typ_wizyty}")
 
         except HTTPException as he:
             error_count += 1
@@ -313,7 +313,7 @@ def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
             wizyta_data = row.to_dict()
             
             # Convert date strings to date objects
-            for date_field in ['Data']:
+            for date_field in ['Data_spotkania']:
                 date_value = wizyta_data.get(date_field)
                 if pd.isna(date_value): # NaN, NaT
                     wizyta_data[date_field] = None

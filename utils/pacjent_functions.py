@@ -168,12 +168,12 @@ def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
     latest_visits_subquery = (
         db.query(
             WizytaAlias.ID_pacjenta,
-            # func.max(WizytaAlias.Data).label('latest_visit_date'),
+            # func.max(WizytaAlias.Data_wizyty).label('latest_visit_date'),
             func.max(WizytaAlias.ID_wizyty).label('latest_visit_id')
         )
         .filter(WizytaAlias.ID_uzytkownika == id_uzytkownika)
         .group_by(WizytaAlias.ID_pacjenta)
-        .order_by(func.max(WizytaAlias.Data).desc())
+        .order_by(func.max(WizytaAlias.Data_wizyty).desc())
         .limit(limit)
         .subquery()
     )
@@ -198,7 +198,7 @@ def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
             Pacjent.Status_pacjenta,
             LatestWizyta.ID_wizyty,
             LatestWizyta.Typ_wizyty, # Use the alias for selection
-            LatestWizyta.Data          # Use the alias for selection
+            LatestWizyta.Data_wizyty          # Use the alias for selection
         )
         # JOIN 1: Filter Pacjent to the top 10 IDs (Explicit ON required)
         .join(
@@ -210,10 +210,10 @@ def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
             LatestWizyta, # Use the ALIAS (the model) as the target
             (LatestWizyta.ID_pacjenta == Pacjent.ID_pacjenta) & # <-- MUST re-introduce the FK link
             (LatestWizyta.ID_wizyty == latest_visits_subquery.c.latest_visit_id)
-            # (LatestWizyta.Data == latest_visits_subquery.c.latest_visit_date)
+            # (LatestWizyta.Data_wizyty == latest_visits_subquery.c.latest_visit_date)
         )
         .filter(LatestWizyta.ID_uzytkownika == id_uzytkownika)
-        .order_by(LatestWizyta.Data.desc())
+        .order_by(LatestWizyta.Data_wizyty.desc())
         .all()
     )
 

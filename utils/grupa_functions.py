@@ -2,7 +2,8 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
-from sqlalchemy.orm import joinedload
+# from sqlalchemy.orm import joinedload
+from typing import List
 
 from db_models.client_data import Grupa, UczestnikGrupy, Pacjent
 from db_models.user_data import User
@@ -19,29 +20,26 @@ def get_grupa_by_id(db: Session, id_grupy: int):
                             detail=f"Grupa with ID {id_grupy} not found")
     return grupa
 
+def _update_prowadzacy_relationship(grupa: Grupa, id_prowadzacych: List[int], db: Session):
+    if id_prowadzacych is not None:
+        grupa.prowadzacy.clear()
+        
+        if id_prowadzacych:
+            prowadzacy_to_add = db.query(User).filter(User.ID_uzytkownika.in_(id_prowadzacych)).all()
+            grupa.prowadzacy.extend(prowadzacy_to_add)
+
 def create_grupa(db: Session, grupa_data: GrupaCreate, id_uzytkownika: int):
-    # Validate value of Typ_grupy
     validate_choice(db, "Typ_grupy", grupa_data.typ_grupy)
 
-    # Convert to dict with DB column names
     data_dict = grupa_data.model_dump(by_alias = True, exclude={'prowadzacy'})
     data_dict["Created"] = datetime.now()
     data_dict["Last_modified"] = datetime.now()
     data_dict["ID_uzytkownika"] = id_uzytkownika  # creator
 
-    # Create SQLAlchemy object
     new_grupa = Grupa(**data_dict)
     
-    # Fetch the User objects based on the list of IDs
-    id_prowadzacych = grupa_data.prowadzacy or []
-    if id_prowadzacych:
-        # Fetch the User objects WHERE User.id is IN the provided list
-        prowadzacy_to_add = db.query(User).filter(User.ID_uzytkownika.in_(id_prowadzacych)).all()
-        
-        # Assign the relationship using the relationship collection
-        new_grupa.prowadzacy.extend(prowadzacy_to_add)
-    
-    # actually add to DB
+    _update_prowadzacy_relationship(new_grupa, grupa_data.prowadzacy, db)
+
     db.add(new_grupa)
     db.commit()
     db.refresh(new_grupa)
@@ -83,30 +81,17 @@ def get_current_groups_for_user(db: Session, id_uzytkownika: int):
 def update_grupa(db: Session, id_grupy: int, grupa_data: GrupaUpdate, id_uzytkownika: int):
     grupa = get_grupa_by_id(db, id_grupy)
 
-    # Validate value of Typ_grupy
     if hasattr(grupa_data, 'typ_grupy') and grupa_data.typ_grupy is not None:
         validate_choice(db, "Typ_grupy", grupa_data.typ_grupy)
 
-    # Convert to dict with DB column names
     data_dict = grupa_data.model_dump(by_alias = True, exclude_unset=True, exclude={'prowadzacy'})
     data_dict["Last_modified"] = datetime.now()
 
-    # Update fields
     for key, value in data_dict.items():
         setattr(grupa, key, value)
 
-    # Update prowadzacy relationship if provided
-    id_prowadzacych = grupa_data.prowadzacy
-    if id_prowadzacych is not None:
-        # Clear existing relationships
-        grupa.prowadzacy.clear()
-        
-        if id_prowadzacych:
-            # Fetch the User objects WHERE User.id is IN the provided list
-            prowadzacy_to_add = db.query(User).filter(User.ID_uzytkownika.in_(id_prowadzacych)).all()
-            
-            # Assign the relationship using the relationship collection
-            grupa.prowadzacy.extend(prowadzacy_to_add)
+    _update_prowadzacy_relationship(grupa, grupa_data.prowadzacy, db)
+
 
     # Commit changes to DB
     db.commit()
@@ -145,10 +130,9 @@ def create_uczestnik_grupy(db: Session, uczestnik_data: UczestnikGrupyCreate):
 
     uczestnik = (
         db.query(UczestnikGrupy)
-        .options(joinedload(UczestnikGrupy.grupa), joinedload(UczestnikGrupy.pacjent))
+        # .options(joinedload(UczestnikGrupy.grupa), joinedload(UczestnikGrupy.pacjent))
         .get(new_uczestnik.ID_uczestnika_grupy)
     )
-    # Return validated Pydantic model (ensures response_model matches and uses aliases)
     return UczestnikGrupyDisplay.model_validate(uczestnik)
 
 def get_uczestnik_grupy_by_id(db: Session, id_uczestnika_grupy: int):
@@ -180,7 +164,7 @@ def delete_uczestnik_grupy(db: Session, id_uczestnika_grupy: int):
 def show_uczestnicy_grupy(db: Session, id_grupy: int):
     uczestnicy = (
         db.query(UczestnikGrupy)
-        .options(joinedload(UczestnikGrupy.pacjent))
+        #.options(joinedload(UczestnikGrupy.pacjent))
         .filter(UczestnikGrupy.ID_grupy == id_grupy)
         .all()
     )
