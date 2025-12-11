@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field #, model_validator, field_validator
 class WizytaIndywidualnaCreate(BaseModel):
     id_pacjenta: int = Field(..., alias="ID_pacjenta")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
-    data: date = Field(..., alias="Data")
+    data_wizyty: date = Field(..., alias="Data_wizyty")
     typ_wizyty: str = Field(..., alias="Typ_wizyty")
     liczba_godzin: float = Field(..., alias="Liczba_godzin")
     notatka_diagnoza_sytuacji: Optional[str] = Field(None, alias="Notatka_diagnoza_sytuacji")
@@ -27,7 +27,7 @@ class WizytaIndywidualnaImport(WizytaIndywidualnaCreate):
 class WizytaIndywidualnaDisplay(BaseModel):
     id_wizyty: int = Field(..., alias="ID_wizyty")
     id_pacjenta: int = Field(..., alias="ID_pacjenta")
-    data: date = Field(..., alias="Data")
+    data_wizyty: date = Field(..., alias="Data_wizyty")
     typ_wizyty: str = Field(..., alias="Typ_wizyty")
     liczba_godzin: float = Field(..., alias="Liczba_godzin")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
@@ -35,7 +35,7 @@ class WizytaIndywidualnaDisplay(BaseModel):
 class WizytaIndywidualnaUpdate(WizytaIndywidualnaCreate):
     id_pacjenta: Optional[int] = Field(None, alias="ID_pacjenta")
     id_uzytkownika: Optional[int] = Field(None, alias="ID_uzytkownika")
-    data: Optional[date] = Field(None, alias="Data")
+    data_wizyty: Optional[date] = Field(None, alias="Data_wizyty")
     typ_wizyty: Optional[str] = Field(None, alias="Typ_wizyty")
     liczba_godzin: Optional[float] = Field(None, alias="Liczba_godzin")
     

@@ -21,11 +21,17 @@ class ProwadzacyDisplay(BaseModel):
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
     full_name: str = Field(..., alias="Full_name")
 
+class UczestnikGrupyDisplayShort(BaseModel):
+    id_uczestnika_grupy: int = Field(..., alias="ID_uczestnika_grupy")
+
 class GrupaDisplay(GrupaCreate):
     id_grupy: int = Field(..., alias="ID_grupy")
     id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
     created: datetime = Field(..., alias="Created")
+    last_modified: datetime = Field(..., alias="Last_modified")
+    rezultaty: Optional[str] = Field(None, alias="Rezultaty")
     prowadzacy: Optional[List[ProwadzacyDisplay]] = Field(None)
+    uczestnicy_grupy: Optional[List[UczestnikGrupyDisplayShort]] = Field(None)
 
 class GrupaUpdate(GrupaCreate):
     nazwa_grupy: Optional[str] = Field(None, alias="Nazwa_grupy")
@@ -69,6 +75,7 @@ class UczestnikGrupyDisplay(UczestnikGrupyCreate):
     last_modified: datetime = Field(..., alias="Last_modified")
     grupa: GrupaDisplayShort = Field(...)
     pacjent: UczestnikDisplay = Field(...)
+
 
 class UczestnikGrupyUpdate(BaseModel):
     id_grupy: Optional[int] = Field(None, alias="ID_grupy")

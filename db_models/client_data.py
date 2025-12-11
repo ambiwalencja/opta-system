@@ -64,7 +64,7 @@ class WizytaIndywidualna(Base):
     ID_pacjenta = Column(Integer, ForeignKey('client_data.pacjenci.ID_pacjenta')) 
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Created = Column(DateTime)
-    Data = Column(Date) # TODO: zmienić na "data_wizyty"
+    Data_wizyty = Column(Date)
     Last_modified = Column(DateTime)
     Typ_wizyty = Column(String) # konsultacja prawna, konsultacja psychologiczna, wsparcie psychologiczne etc.
     Liczba_godzin = Column(Numeric(3, 1))
@@ -81,7 +81,6 @@ prowadzacy_grupy = Table(
     'prowadzacy_grupy', Base.metadata,
     Column('ID_uzytkownika', Integer, ForeignKey('user_data.users.ID_uzytkownika'), primary_key=True),
     Column('ID_grupy', Integer, ForeignKey('client_data.grupy.ID_grupy'), primary_key=True)
-    # You might also add metadata like 'date_joined' here if needed
 )
 
 class Grupa(Base):
@@ -101,9 +100,16 @@ class Grupa(Base):
     Rezultaty = Column(String)
 
     spotkania_grupowe = relationship('SpotkanieGrupowe', back_populates='grupa')
-    uczestnik_grupy = relationship('UczestnikGrupy', back_populates='grupa')
+    uczestnicy_grupy = relationship('UczestnikGrupy', back_populates='grupa')
     prowadzacy = relationship('User', secondary=prowadzacy_grupy, back_populates='grupy') # many-to-many
  
+
+obecni_uczestnicy_spotkania = Table(
+    'obecni_uczestnicy_spotkania', Base.metadata,
+    Column('ID_uczestnika_grupy', Integer, ForeignKey('client_data.uczestnicy_grupy.ID_uczestnika_grupy'), primary_key=True),
+    Column('ID_spotkania', Integer, ForeignKey('client_data.spotkania_grupowe.ID_spotkania'), primary_key=True)
+)
+
 class UczestnikGrupy(Base):
     __tablename__ = "uczestnicy_grupy"
     __table_args__ = {'schema': 'client_data'}
@@ -115,8 +121,10 @@ class UczestnikGrupy(Base):
     Ukonczenie = Column(Boolean)
     Rezultat = Column(String)
 
-    grupa = relationship('Grupa', back_populates='uczestnik_grupy')
+    grupa = relationship('Grupa', back_populates='uczestnicy_grupy')
     pacjent = relationship('Pacjent', back_populates='uczestnik_grupy')
+    spotkania_grupowe = relationship("SpotkanieGrupowe", secondary=obecni_uczestnicy_spotkania, back_populates="obecni_uczestnicy")
+
 
 class SpotkanieGrupowe(Base):
     __tablename__ = "spotkania_grupowe"
@@ -126,10 +134,10 @@ class SpotkanieGrupowe(Base):
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika'))
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
-    Data = Column(Date)
-    Prowadzacy = Column(JSON) # to jest zawsze to samo co przy grupie
+    Data_spotkania = Column(Date)
     Liczba_godzin = Column(Numeric(3, 1))
-    Obecni_uczestnicy = Column(JSON) # lista ID pacjentow
+    # Obecni_uczestnicy = Column(JSON) # lista ID pacjentow - zamieniona na many-to-many relationship
     Notatka_przebieg = Column(String)
 
     grupa = relationship('Grupa', back_populates='spotkania_grupowe')
+    obecni_uczestnicy = relationship("UczestnikGrupy", secondary=obecni_uczestnicy_spotkania, back_populates="spotkania_grupowe")

@@ -212,7 +212,7 @@ class PacjentWithWizytaDisplay(BaseModel):
     
     # WizytaIndywidualna fields
     typ_wizyty: str = Field(..., alias="Typ_wizyty")
-    data: date = Field(..., alias="Data")
+    data_wizyty: date = Field(..., alias="Data_wizyty")
 
     class Config:
         from_attributes = True

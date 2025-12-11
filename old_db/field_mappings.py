@@ -182,7 +182,7 @@ WIZYTY_COLUMN_MAPPING = {
         'id_pacjenta': 'ID_pacjenta',
        
         # brak 'ID_uzytkownika'!
-        'data_wizyty': 'Data',
+        'data_wizyty': 'Data_wizyty',
         'specjalista': 'Typ_wizyty',
         'liczba_godzin': 'Liczba_godzin',
         'diagnoza_sytuacji': 'Notatka_diagnoza_sytuacji',
@@ -233,9 +233,8 @@ TYP_WIZYTY_MAP = {
 SPOTKANIA_GRUPOWE_COLUMN_MAPPING = {
         'id_wizyty': 'ID_spotkania', # nie, to nie jest to samo!!!!!
         # ?????? tutaj trzeba będzie pomyśleć
-        'data_wizyty': 'Data',
+        'data_wizyty': 'Data_spotkania',
         'specjalista': 'Typ_wizyty',
         'liczba_godzin': 'Liczba_godzin',
-        'rezultaty': 'Notatka_przebieg' #?
-        # Prowadzacy, Obecni_uczestnicy
+        'rezultaty': 'Notatka_przebieg'
 }

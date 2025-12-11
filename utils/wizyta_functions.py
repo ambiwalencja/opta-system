@@ -39,7 +39,7 @@ def core_save_wizyta(db: Session, wizyta_data: BaseModel):
 
     # 6. update pacjent's Last_wizyta field
     pacjent = get_pacjent_by_id(db, new_wizyta.ID_pacjenta)
-    pacjent.Data_ostatniej_wizyty = new_wizyta.Data
+    pacjent.Data_ostatniej_wizyty = new_wizyta.Data_wizyty
     
     # 7. commit pacjent update
     db.add(pacjent)
@@ -82,10 +82,10 @@ def update_wizyta(db: Session, id_wizyty: int, wizyta_data: BaseModel):
     db.commit()
     db.refresh(wizyta)
 
-    # 6. If Data or ID_pacjenta changed, update pacjent's Last_wizyta field
-    if 'Data' in data_dict or 'ID_pacjenta' in data_dict:
+    # 6. If Data_wizyty or ID_pacjenta changed, update pacjent's Last_wizyta field
+    if 'Data_wizyty' in data_dict or 'ID_pacjenta' in data_dict:
         pacjent = get_pacjent_by_id(db, wizyta.ID_pacjenta)
-        pacjent.Data_ostatniej_wizyty = wizyta.Data
+        pacjent.Data_ostatniej_wizyty = wizyta.Data_wizyty
         
         # 7. commit pacjent update
         db.commit()
