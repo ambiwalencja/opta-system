@@ -193,26 +193,28 @@ WIZYTY_COLUMN_MAPPING = {
 
 }
 
-TYP_WIZYTY_MAP = {
+TYP_WIZYTY_INDYWIDUALNEJ_MAP = {
     1: 'specjalista ds. przeciwdziałania przemocy', 
     2: 'adwokat socjalny',
     3: 'psycholog - konsultacja diagnostyczna',
     4: 'psycholog - konsultacja rodzicielska',
-    5: 'prawnik - konsultacja /porada prawna',
+    5: 'prawnik - konsultacja / porada prawna',
     6: 'psycholog/terapeuta - wsparcie',
     7: 'konsultacje do grupy wsparcia i do grupy rozwojowej',
     17: 'indywidualne konsultacje w zespole psycholog-prawnik',
-    19: 'indywidualne konsultacje do grupy trening antystresowy 2020',
+    19: 'indywidualne konsultacje do grupy trening antystresowy 2020'
+}
 
+NAZWA_GRUPY_MAP = {
     8: 'grupa wsparcia',
     9: 'grupa o charakterze rozwojowym',
     10: 'trening antystresowy',
-    11: 'warsztat psychoedukacyjny 1',
+    11: 'warsztat psychoedukacyjny 1', # odtąd nie ma żadnego spotkania
     12: 'warsztat psychoedukacyjny 2',
     13: 'warsztat psychoedukacyjny 3',
     14: 'warsztat psychoedukacyjny 4',
     15: 'warsztat psychoedukacyjny 5',
-    16: 'warsztat psychoedukacyjny 6', 
+    16: 'warsztat psychoedukacyjny 6', # odtąd znowu są
     18: 'trening antystresowy 2020',
     20: 'trening antystresowy 2021 - grupa 1',
     21: 'trening antystresowy 2021 - grupa 2',
@@ -230,11 +232,38 @@ TYP_WIZYTY_MAP = {
     33: 'Warsztat psychoedukacyjny 2022 - jesień'
 }
 
+GRUPY_TABLE_MAP = {
+    8: ['grupa wsparcia', '2020-01-01', 'grupa wsparcia'],
+    9: ['grupa o charakterze rozwojowym', '2020-01-01', 'grupa o charakterze rozwojowym'],
+    10: ['trening antystresowy', '2020-01-01', 'trening antystresowy'],
+    11: ['warsztat psychoedukacyjny 1', '2020-01-01', 'warsztat psychoedukacyjny'],
+    12: ['warsztat psychoedukacyjny 2', '2020-01-01', 'warsztat psychoedukacyjny'],
+    13: ['warsztat psychoedukacyjny 3', '2020-01-01', 'warsztat psychoedukacyjny'],
+    14: ['warsztat psychoedukacyjny 4', '2020-01-01', 'warsztat psychoedukacyjny'],
+    15: ['warsztat psychoedukacyjny 5', '2020-01-01', 'warsztat psychoedukacyjny'],
+    16: ['warsztat psychoedukacyjny 6', '2020-01-01', 'warsztat psychoedukacyjny'],
+    18: ['trening antystresowy 2020', '2020-01-01', 'trening antystresowy'],
+    20: ['trening antystresowy 2021 - grupa 1', '2021-01-01', 'trening antystresowy'],
+    21: ['trening antystresowy 2021 - grupa 2', '2021-01-01', 'trening antystresowy'],
+    22: ['grupa rozwojowa Jesień 2021', '2021-09-01', 'grupa o charakterze rozwojowym'],
+    23: ['Grupa wsparcia 2021 - wiosna', '2021-03-01', 'grupa wsparcia'],
+    24: ['Grupa wsparcia 2021 - jesień', '2021-09-01', 'grupa wsparcia'],
+    25: ['Warsztat psychoedukacyjny 2021 - wiosna', '2021-03-01', 'warsztat psychoedukacyjny'],
+    26: ['Warsztat psychoedukacyjny 2021 - jesień', '2021-09-01', 'warsztat psychoedukacyjny'],
+    27: ['trening antystresowy 2022 - grupa 1', '2022-01-01', 'trening antystresowy'],
+    28: ['trening antystresowy 2022 - grupa 2', '2022-01-01', 'trening antystresowy'],
+    29: ['grupa rozwojowa Jesień 2022', '2022-09-01', 'grupa o charakterze rozwojowym'],
+    30: ['Grupa wsparcia 2022 - wiosna', '2022-03-01', 'grupa wsparcia'],
+    31: ['Grupa wsparcia 2022 - jesień', '2022-09-01', 'grupa wsparcia'],
+    32: ['Warsztat psychoedukacyjny 2022 - wiosna', '2022-03-01', 'warsztat psychoedukacyjny'],
+    33: ['Warsztat psychoedukacyjny 2022 - jesień', '2020-09-01', 'warsztat psychoedukacyjny']
+    # TODO: tutaj trzeba będzie uzupełnić dla najnowszej bazy, bo moim zdaniem nie da się tego łatwo zautomatyzować
+}
+
+
 SPOTKANIA_GRUPOWE_COLUMN_MAPPING = {
-        'id_wizyty': 'ID_spotkania', # nie, to nie jest to samo!!!!!
-        # ?????? tutaj trzeba będzie pomyśleć
         'data_wizyty': 'Data_spotkania',
-        'specjalista': 'Typ_wizyty',
+        'specjalista': 'Nazwa_grupy',
         'liczba_godzin': 'Liczba_godzin',
-        'rezultaty': 'Notatka_przebieg'
+        'info_o_dzialaniach': 'Notatka_przebieg'
 }

@@ -15,14 +15,14 @@ def transform_imported_table(old_db_table_name: str, new_db_table_name: str, db_
         elif new_db_table_name == "spotkania_grupowe":
             df = transform_table_spotkania_grupowe(df)
         elif new_db_table_name == "uczestnicy_grupy":
-            df = transform_table_uczestnicy_grupy(df)
+            df = transform_table_uczestnicy_grupy(df, db_new)
         else: 
             raise ValueError(f"Unknown new_db_table_name for wizyty: {new_db_table_name}")
     elif old_db_table_name == "groupvisits":
         df = transform_table_groupvisits(df)
     else:
         raise ValueError(f"Unknown table name: {old_db_table_name}")
-    filename = f"test_table_import_after_transform_{old_db_table_name}.csv"
+    filename = f"test_table_import_after_transform_{new_db_table_name}.csv"
     try:
         with open(filename, 'w', newline='', encoding='utf-8') as f:
             df.to_csv(f, index=False)
@@ -134,33 +134,66 @@ def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     return df
 
 def transform_table_wizyty_indywidualne(df: pd.DataFrame):
-    individual_visits_list = [1, 2, 3, 4, 5, 6, 7, 17, 19]
-    df = df.loc[df['specjalista'].isin(individual_visits_list)] # wybieramy tylko indywidualne
-    
+    df = df.loc[df['specjalista'].isin(field_mappings.TYP_WIZYTY_INDYWIDUALNEJ_MAP.keys())]
+
     columns_to_drop = ['miesiac', 'rok', 'ind_grupowa', 'zaliczone', 'info_o_dzialaniach']
     df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
     
     df = df.rename(columns=field_mappings.WIZYTY_COLUMN_MAPPING)
     df = df.sort_values(by='ID_wizyty', ascending=True)
-    df['Typ_wizyty'] = df['Typ_wizyty'].map(field_mappings.TYP_WIZYTY_MAP)
-    recoding_user_dict = {
-    'prawnik - konsultacja /porada prawna': 'prawnik - konsultacja / porada prawna'
-    }
-    df['Typ_wizyty'] = df['Typ_wizyty'].replace(recoding_user_dict)
+    df['Typ_wizyty'] = df['Typ_wizyty'].map(field_mappings.TYP_WIZYTY_INDYWIDUALNEJ_MAP)
     df['ID_uzytkownika'] = 1
     return df
 
 def transform_table_spotkania_grupowe(df: pd.DataFrame):
-    group_visits_list = range(8, 34)
-    group_visits_list.remove(17, 19)
-    df = df.loc[df['specjalista'].isin(group_visits_list)] 
+    df = df.loc[df['specjalista'].isin(field_mappings.NAZWA_GRUPY_MAP.keys())] 
+    # najpierw trzeba stworzyć uczestników grupy, żeby znać pary id pacjenta i id grupy i na tej podstawie mieć id uczestnika grupy
+    # a potem mając juz to, można wyciągać informacje z tabeli wszystkich wizyt kto był kiedy, bo wtedy można wpisać id uczestnika grupy do listy obecności danego spotkania grup.
+    # czyli zanim dodamy spotkania grupowe musimy dodać tabelę uczestników grupy
+    
+    
+    df = df[['data_wizyty', 'specjalista', 'liczba_godzin', 'info_o_dzialaniach']]
 
-    columns_to_drop = ['miesiac', 'rok', 'ind_grupowa', 'diagnoza_sytuacji', 'opis_sytuacji', 'indywidualny_plan', 'rezultaty', 'odeslanie_do_innych']
-    df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
-    # to jeszcze niegotowe
+    # trzeba wybrać tylko jedną wizytę dla danej daty i danej grupy (specjalista)
+    df = df.drop_duplicates(subset=['data_wizyty', 'specjalista'], keep='first')
+    df = df.rename(columns=field_mappings.SPOTKANIA_GRUPOWE_COLUMN_MAPPING)
+    df = df.sort_values(by='Data_spotkania', ascending=True)
+    
     return df
 
-def transform_table_uczestnicy_grupy(df: pd.DataFrame):
+def transform_table_uczestnicy_grupy(df: pd.DataFrame, db: Session):
+    df = df.loc[df['specjalista'].isin(field_mappings.NAZWA_GRUPY_MAP.keys())] 
+    # df = df[['id_wizyty', 'id_pacjenta', 'data_wizyty', 'specjalista', 'diagnoza_sytuacji', 'opis_sytuacji', 'indywidualny_plan', 'rezultaty', 'zaliczone']]
+    df = df[['id_pacjenta', 'specjalista', 'rezultaty', 'zaliczone']]
+
+    # Fix group identification through group name
+    from old_db.field_mappings import NAZWA_GRUPY_MAP
+    df['nazwa_grupy'] = df['specjalista'].map(NAZWA_GRUPY_MAP)
+    from db_models.client_data import Grupa
+    grupy = db.query(Grupa).all()
+    grupa_name_to_id = {grupa.Nazwa_grupy: grupa.ID_grupy for grupa in grupy}
+    df['id_grupy'] = df['nazwa_grupy'].map(grupa_name_to_id)
+    
+    df = df.rename(columns={'rezultaty': 'rezultat', 'zaliczone': 'ukonczenie'})
+    df = df.drop(columns=['specjalista', 'nazwa_grupy'])
+
+    # recode ukonczenie
+    df['ukonczenie'] = df['ukonczenie'].map({1: True, 2: False, 0: None})
+
+     # fix date
+    # df['data_wizyty'] = pd.to_datetime(df['data_wizyty']).dt.date
+
+    # all notes into one column 'rezultat'
+    # df['rezultat'] = df[['data_wizyty', 'diagnoza_sytuacji', 'opis_sytuacji', 'indywidualny_plan']].fillna('').apply(lambda row: '; '.join(row.astype(str)), axis=1)
+
+    # print(f'rezultat po połączeniu: {df["rezultat"].head(20)}')
+    # df['rezultat'] = df.groupby(['id_pacjenta', 'specjalista'])['rezultat'].transform(lambda x: ' | '.join(x))
+    # print(f'rezultat po groupby: {df["rezultat"].head(20)}')
+    # df = df.drop(columns=['data_wizyty', 'diagnoza_sytuacji', 'opis_sytuacji', 'indywidualny_plan'])
+    
+    # print(f'przed usunięciem duplikatów: {df.head(20)}')
+    df = df.drop_duplicates(subset=['id_pacjenta', 'id_grupy'], keep='last')
+    # print(f'po usunięciu duplikatów: {df.head(20)}')
     return df
 
 def transform_table_groupvisits(df: pd.DataFrame):

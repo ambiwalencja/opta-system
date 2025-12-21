@@ -10,10 +10,13 @@ from typing import Union
 from schemas.pacjent_schemas import PacjentImport
 from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaImport
 from schemas.user_schemas import UserCreate
+from schemas.grupa_schemas import GrupaCreate, UczestnikGrupyCreate
 
 from utils.pacjent_functions import import_pacjent
 from utils.wizyta_functions import create_wizyta, import_wizyta
+from utils.grupa_functions import create_grupa, create_uczestnik_grupy
 
+from old_db.field_mappings import NAZWA_GRUPY_MAP, GRUPY_TABLE_MAP
 
 
 
@@ -193,7 +196,6 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
 
 def reset_wizyta_sequence(db: Session) -> None:
     """Resets the PostgreSQL auto-increment sequence to MAX(ID_wizyty) + 1."""
-
     sql_command = text("""
         SELECT setval(
             pg_get_serial_sequence('client_data.wizyty_indywidualne', 'ID_wizyty'), 
@@ -201,11 +203,8 @@ def reset_wizyta_sequence(db: Session) -> None:
             true
         );
     """)
-    
     try:
-        print("before sql command")
         db.execute(sql_command)
-        print("after sql command")
         db.commit()
         print("Successfully reset wizyty ID sequence.")
     except Exception as e:
@@ -214,8 +213,6 @@ def reset_wizyta_sequence(db: Session) -> None:
 
 def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
     df = df.head(100) # for testing, limit
-    # with open('test_wizyty.csv', 'w', newline='', encoding='utf-8') as f:
-    #     df.to_csv(f, index=False)
 
     if df is None or df.empty:
         raise HTTPException(
@@ -291,10 +288,116 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
     }
 
     if results["success_count"] > 0:
-        print("before reset sequence)")
         reset_wizyta_sequence(db) # resetting the sequence after bulk import to enable normal inserts
     
     return results
+
+
+
+def import_grupy_from_dict_to_new_db(db: Session):
+    for nr, attributes in GRUPY_TABLE_MAP.items():
+        nazwa_grupy_value, data_rozp_value, typ_grupy_value = attributes
+        input_data = {
+            "Nazwa_grupy": nazwa_grupy_value,
+            "Data_rozpoczecia": data_rozp_value,
+            "Typ_grupy": typ_grupy_value
+        }
+        try:
+            new_grupa = GrupaCreate(**input_data)
+        except Exception as e:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Invalid data for number {nr}: {str(e)}"
+                )
+        try:
+            create_grupa(db, new_grupa, id_uzytkownika=1)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error creating grupa for number {nr}: {str(e)}"
+            )
+    
+    return True
+
+def reset_uczestnik_grupy_sequence(db: Session) -> None:
+    """Resets the PostgreSQL auto-increment sequence to MAX(ID_uczestnika_grupy) + 1."""
+    sql_command = text("""
+        SELECT setval(
+            pg_get_serial_sequence('client_data.uczestnicy_grupy', 'ID_uczestnika_grupy'),
+            (SELECT MAX("ID_uczestnika_grupy") FROM client_data.uczestnicy_grupy),
+            true
+        );
+    """)
+    try:
+        db.execute(sql_command)
+        db.commit()
+        print("Successfully reset uczestnik_grupy ID sequence.")
+    except Exception as e:
+        db.rollback()
+        print(f"Error resetting uczestnik_grupy ID sequence: {e}")
+
+def import_uczestnicy_grupy_to_new_db(df: pd.DataFrame, db: Session):
+    if df is None or df.empty:
+        raise HTTPException(
+            status_code=400,
+            detail="No data to import"
+        )
+    
+    success_count = 0
+    error_count = 0
+    errors = []
+
+    for index, row in df.iterrows():
+        try:
+            uczestnik_grupy_data = row.to_dict()
+            
+            # Convert empty strings to None
+            for key, value in uczestnik_grupy_data.items():
+                if isinstance(value, (list, tuple, dict, pd.Series)):
+                    continue # Skip the missing value check for collections
+                if isinstance(value, str):
+                    if value.strip() == '':
+                        uczestnik_grupy_data[key] = None
+                elif pd.isna(value): # NaN, NaT # we can't give a collection as an argument here, because it then returns a collection of bools, not a single bool
+                    uczestnik_grupy_data[key] = None
+            
+            # Create Pydantic model
+            try:
+                uczestnik_grupy = UczestnikGrupyCreate(**uczestnik_grupy_data)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Invalid data in row {index}: {str(e)}"
+                )
+            
+            created_uczestnik_grupy = create_uczestnik_grupy(db, uczestnik_grupy)
+            
+            success_count += 1
+
+        except HTTPException as he:
+            error_count += 1
+            errors.append(str(he.detail))
+            print(f"HTTP Error at row {index}: {he.detail}")
+            continue
+        except Exception as e:
+            error_count += 1
+            error_msg = f"Error importing uczestnik grupy at row {index}: {str(e)}"
+            errors.append(error_msg)
+            print(error_msg)
+            db.rollback() # ???
+            continue
+
+    results = {
+        "success_count": success_count,
+        "error_count": error_count,
+        "errors": errors
+    }
+    
+    if results["success_count"] > 0:
+        reset_uczestnik_grupy_sequence(db)
+    
+    return results
+
 
 def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
     if df is None or df.empty:
