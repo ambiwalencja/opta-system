@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Union
 
 from schemas.pacjent_schemas import PacjentImport
+from schemas.spot_grup_schemas import SpotkanieGrupoweCreate
 from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaImport
 from schemas.user_schemas import UserCreate
 from schemas.grupa_schemas import GrupaCreate, UczestnikGrupyCreate
@@ -15,6 +16,7 @@ from schemas.grupa_schemas import GrupaCreate, UczestnikGrupyCreate
 from utils.pacjent_functions import import_pacjent
 from utils.wizyta_functions import create_wizyta, import_wizyta
 from utils.grupa_functions import create_grupa, create_uczestnik_grupy
+from utils.spot_grup_functions import create_spotkanie_grupowe
 
 from old_db.field_mappings import NAZWA_GRUPY_MAP, GRUPY_TABLE_MAP
 
@@ -112,7 +114,7 @@ def reset_pacjent_sequence(db: Session) -> None:
         print(f"Error resetting pacjenci ID sequence: {e}")
 
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
-    df = df.head(100) # for testing, limit
+    # df = df.head(100) # for testing, limit
     # with open('test10.csv', 'w', newline='', encoding='utf-8') as f:
     #     df.to_csv(f, index=False)
 
@@ -212,7 +214,7 @@ def reset_wizyta_sequence(db: Session) -> None:
         print(f"Error resetting wizyty ID sequence: {e}")
 
 def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
-    df = df.head(100) # for testing, limit
+    # df = df.head(100) # for testing, limit
 
     if df is None or df.empty:
         raise HTTPException(
@@ -291,8 +293,6 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
         reset_wizyta_sequence(db) # resetting the sequence after bulk import to enable normal inserts
     
     return results
-
-
 
 def import_grupy_from_dict_to_new_db(db: Session):
     for nr, attributes in GRUPY_TABLE_MAP.items():
@@ -400,6 +400,7 @@ def import_uczestnicy_grupy_to_new_db(df: pd.DataFrame, db: Session):
 
 
 def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
+    # df = df.head(40)
     if df is None or df.empty:
         raise HTTPException(
             status_code=400,
@@ -412,48 +413,43 @@ def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
 
     for index, row in df.iterrows():
         try:
-            # Convert row to dict and create PacjentImport object
-            wizyta_data = row.to_dict()
+            spotkanie_data = row.to_dict()
             
-            # Convert date strings to date objects
             for date_field in ['Data_spotkania']:
-                date_value = wizyta_data.get(date_field)
-                if pd.isna(date_value): # NaN, NaT
-                    wizyta_data[date_field] = None
+                date_value = spotkanie_data.get(date_field)
+                if pd.isna(date_value):
+                    spotkanie_data[date_field] = None
                     continue
 
                 try:
-                    wizyta_data[date_field] = date_value.date() # we use this method because the object is already a Timestamp, not a string
-                except AttributeError as e: # This catches if the object is *not* a Timestamp and *not* a datetime
+                    spotkanie_data[date_field] = date_value.date() 
+                except AttributeError as e:
                     raise HTTPException(
                         status_code=400,
                         detail=f"Invalid date object type in row {index} for field {date_field}: {str(e)}"
                     )
             
-            # Convert empty strings to None
-            for key, value in wizyta_data.items():
+            for key, value in spotkanie_data.items():
                 if isinstance(value, (list, tuple, dict, pd.Series)):
-                    continue # Skip the missing value check for collections
+                    continue
                 if isinstance(value, str):
                     if value.strip() == '':
-                        wizyta_data[key] = None
-                elif pd.isna(value): # NaN, NaT # we can't give a collection as an argument here, because it then returns a collection of bools, not a single bool
-                    wizyta_data[key] = None
-            
-            # Create Pydantic model
+                        spotkanie_data[key] = None
+                elif pd.isna(value):
+                    spotkanie_data[key] = None
+
             try:
-                wizyta = WizytaIndywidualnaCreate(**wizyta_data)
+                spotkanie = SpotkanieGrupoweCreate(**spotkanie_data)
             except Exception as e:
                 raise HTTPException(
                     status_code=422,
                     detail=f"Invalid data in row {index}: {str(e)}"
                 )
-            
-            # Use the create_wizyta function directly
-            created_wizyta = create_wizyta(db, wizyta)
-            
+
+            created_spotkanie = create_spotkanie_grupowe(db, spotkanie, 1)
+
             success_count += 1
-            print(f"Successfully imported wizyta {wizyta.data} {wizyta.typ_wizyty}")
+            # print(f"Successfully imported spotkanie {spotkanie.data_spotkania} {spotkanie.id_grupy}")
         except HTTPException as he:
             error_count += 1
             errors.append(str(he.detail))
@@ -461,10 +457,11 @@ def import_spotkania_grupowe_to_new_db(df: pd.DataFrame, db: Session):
             continue
         except Exception as e:
             error_count += 1
-            error_msg = f"Error importing wizyta at row {index}: {str(e)}"
+            error_msg = f"Error importing spotkanie at row {index}: {str(e)}"
             errors.append(error_msg)
             print(error_msg)
             continue
+    
     results = {
         "success_count": success_count,
         "error_count": error_count,
