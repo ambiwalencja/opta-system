@@ -57,6 +57,14 @@ class Pacjent(Base):
     uzytkownik = relationship("User", back_populates="pacjenci")
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='pacjent')
 
+pacjent_duplicates = Table(
+    'pacjent_duplicates', Base.metadata,
+    Column('ID_pacjenta', Integer, ForeignKey('client_data.pacjenci.ID_pacjenta'), primary_key=True),
+    Column('ID_zduplikowanego_pacjenta', Integer, ForeignKey('client_data.pacjenci.ID_pacjenta'), primary_key=True),
+    Column('Duplicated_field', String),
+    Column('Duplicated_value', String)
+)
+
 class WizytaIndywidualna(Base):
     __tablename__ = "wizyty_indywidualne"
     __table_args__ = {'schema': 'client_data'}

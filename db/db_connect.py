@@ -25,7 +25,8 @@ def json_deserializer(obj):
 engine = create_engine(
     DATABASE_URL,
     json_serializer=json_serializer,
-    json_deserializer=json_deserializer
+    json_deserializer=json_deserializer,
+    connect_args={"connect_timeout": 15}
 )
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)

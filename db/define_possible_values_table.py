@@ -140,7 +140,7 @@ def populate_possible_values(db: Session):
             "prawnik - konsultacja / porada prawna": "radio",
             "psycholog/terapeuta - wsparcie": "radio",
             "konsultacje do grupy wsparcia i do grupy rozwojowej": "radio",
-            'indywidualne konsultacje w zespole psycholog/prawnik': "radio"
+            'indywidualne konsultacje w zespole psycholog-prawnik': "radio"
             }},
 
         {"Variable_ID": 23, "Variable_name": "Specjalista", "Variable_label": "Specjalista/rodzaj wizyty", "Possible_values": {
