@@ -11,7 +11,7 @@ def transform_imported_table(old_db_table_name: str, new_db_table_name: str, db_
         df = transform_table_pacjenci(df, db_new)
     elif old_db_table_name == "wizyty":
         if new_db_table_name == "wizyty_indywidualne":
-            df = transform_table_wizyty_indywidualne(df)
+            df = transform_table_wizyty_indywidualne(df, db_old, db_new)
         elif new_db_table_name == "spotkania_grupowe":
             df = transform_table_spotkania_grupowe(df, db_new)
         elif new_db_table_name == "uczestnicy_grupy":
@@ -134,8 +134,9 @@ def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     return df
 
 def transform_table_wizyty_indywidualne(df: pd.DataFrame, old_db: Session, new_db: Session):
-    # df = df.loc[df['specjalista'].isin(field_mappings.TYP_WIZYTY_INDYWIDUALNEJ_MAP.keys())]
-    df = df.loc[df['specjalista'] == 17]
+    df = df.loc[df['specjalista'].isin(field_mappings.TYP_WIZYTY_INDYWIDUALNEJ_MAP.keys())]
+    # df = df.loc[df['specjalista'] == 19]
+    # df = df.head(50) # tylko do testów
 
     columns_to_drop = ['miesiac', 'rok', 'ind_grupowa', 'zaliczone', 'info_o_dzialaniach']
     df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
@@ -146,7 +147,7 @@ def transform_table_wizyty_indywidualne(df: pd.DataFrame, old_db: Session, new_d
     
     # Adding ID_uzytkownika from rejestr table through username and id_wizyty
     df_usernames = import_table_to_dataframe('rejestr', old_db)
-    df_usernames = df_usernames.loc[df['modul'] == 'addvisit']
+    df_usernames = df_usernames.loc[df_usernames['modul'] == 'addvisit']
     df_usernames = df_usernames[['relid', 'operator']].rename(columns={'relid': 'ID_wizyty', 'operator': 'Username'})
     df = df.merge(df_usernames, on='ID_wizyty', how='left')
 
@@ -155,8 +156,6 @@ def transform_table_wizyty_indywidualne(df: pd.DataFrame, old_db: Session, new_d
     df = df.merge(df_users, on='Username', how='left')
     df = df.drop(columns=['Username'])
     df['ID_uzytkownika'] = df['ID_uzytkownika'].fillna(1)
-    # TODO: powyższa funkcja dodana - przetestować
-    #TODO: trzeba też będzie ogarnąć duplikaty tj wizyty przypisane do zduplikowanych kontaktów, które się nie dodały - czyli wizyty przypisane do tych id pacjentów przypisać do tych które się dodały
     return df
 
 def transform_table_spotkania_grupowe(df: pd.DataFrame, new_db: Session):

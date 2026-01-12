@@ -114,7 +114,7 @@ def reset_pacjent_sequence(db: Session) -> None:
         print(f"Error resetting pacjenci ID sequence: {e}")
 
 def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
-    # df = df.head(100) # for testing, limit
+    # df = df.head(5) # for testing, limit
     # with open('test10.csv', 'w', newline='', encoding='utf-8') as f:
     #     df.to_csv(f, index=False)
 
@@ -161,6 +161,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
             # Create Pydantic model
             try:
                 pacjent = PacjentImport(**pacjent_data)
+                # print(f'Created PacjentImport model for row {index}: {pacjent}')
             except Exception as e:
                 raise HTTPException(
                     status_code=422,
@@ -168,7 +169,7 @@ def import_pacjenci_to_new_db(df: pd.DataFrame, db: Session):
                 )
             
             # Use the import_pacjent function directly
-            imported_patient = import_pacjent(db, pacjent, id_uzytkownika=1)
+            imported_patient = import_pacjent(db, pacjent) #, id_uzytkownika=1
             
             success_count += 1
             # print(f"Successfully imported patient {pacjent.imie} {pacjent.nazwisko}")
@@ -213,9 +214,26 @@ def reset_wizyta_sequence(db: Session) -> None:
         db.rollback()
         print(f"Error resetting wizyty ID sequence: {e}")
 
+def get_correct_pacjent_id(db: Session, current_pacjent_id: int):
+    """
+    Get the correct pacjent ID for wizyta import, accounting for duplicates.
+    current_pacjent_id: The ID of the current pacjent which is/can be a duplicate
+    """
+    from db_models.client_data import pacjent_duplicates
+
+    duplicate_record = db.query(pacjent_duplicates).filter(
+        pacjent_duplicates.c.ID_zduplikowanego_pacjenta == current_pacjent_id
+    ).first()
+    
+    if duplicate_record:
+        # If it's a duplicate, use the original ID
+        return duplicate_record.ID_pacjenta
+
+    return current_pacjent_id
+
 def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
     # df = df.head(100) # for testing, limit
-
+    
     if df is None or df.empty:
         raise HTTPException(
             status_code=400,
@@ -258,6 +276,7 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
             
             # Create Pydantic model
             try:
+                wizyta_data['ID_pacjenta'] = get_correct_pacjent_id(db, wizyta_data['ID_pacjenta'])
                 wizyta = WizytaIndywidualnaImport(**wizyta_data)
             except Exception as e:
                 raise HTTPException(

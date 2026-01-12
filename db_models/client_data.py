@@ -6,7 +6,7 @@ from db.db_connect import Base
 class Pacjent(Base):
     __tablename__ = "pacjenci"  # to musi być dokładnie ta sama nazwa, co nazwa tabeli, do której chcemy wrzucać dane
     __table_args__ = {'schema': 'client_data'}
-    ID_pacjenta = Column(Integer, primary_key=True)
+    ID_pacjenta = Column(Integer, primary_key=True, autoincrement='auto')
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika')) # osoba rejestrująca
     Created = Column(DateTime)
     Last_modified = Column(DateTime)

@@ -179,7 +179,8 @@ class PacjentUpdate(BaseModel):
 
 
 class PacjentImport(PacjentUpdate):
-    id_pacjenta: int = Field(..., alias="ID_pacjenta") 
+    id_pacjenta: int = Field(..., alias="ID_pacjenta")
+    id_uzytkownika: Optional[int] = Field(None, alias="ID_uzytkownika")
 
 class PacjentDisplay(BaseModel):
     id_pacjenta: int = Field(..., alias="ID_pacjenta") 

@@ -68,6 +68,62 @@ def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
         )
     return None 
 
+def check_pacjent_duplicates_for_import(db: Session, pacjent_data: PacjentCreateBasic):
+    """
+    Check for duplicates and return original pacjent info instead of raising exception.
+    Returns:
+        None if no duplicate found
+        List[original_pacjent_id, duplicate_field, duplicate_value] if duplicate found
+    """
+    # Check for duplicates - phone
+    if pacjent_data.telefon:
+        original_pacjent = db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first()
+        if original_pacjent:
+            return [original_pacjent.ID_pacjenta, "Telefon", pacjent_data.telefon]
+    
+    # Check for duplicates - email
+    if pacjent_data.email:
+        original_pacjent = db.query(Pacjent).filter(Pacjent.Email == pacjent_data.email).first()
+        if original_pacjent:
+            return [original_pacjent.ID_pacjenta, "Email", pacjent_data.email]
+
+    # Check for duplicates - name and address
+    original_pacjent = db.query(Pacjent).filter(
+        Pacjent.Imie == pacjent_data.imie,
+        Pacjent.Nazwisko == pacjent_data.nazwisko,
+        Pacjent.Dzielnica == pacjent_data.dzielnica,
+    ).first()
+    if original_pacjent:
+        return [original_pacjent.ID_pacjenta, "Imie,Nazwisko,Dzielnica", f'{pacjent_data.imie} {pacjent_data.nazwisko} ({pacjent_data.dzielnica})']
+
+    return None
+
+def record_pacjent_duplicate(db: Session, original_id: int, duplicate_id: int, duplicate_field: str, duplicate_value: str = None) -> None:
+    """
+    Record a duplicate relationship in the pacjent_duplicates table.
+    
+    Args:
+        original_id: The ID_pacjenta that was kept (the original)
+        duplicate_id: The ID_pacjenta that is a duplicate
+        duplicate_field: Which field(s) caused the duplicate (e.g., "Telefon", "Email")
+        duplicate_value: Optional - the actual value that was duplicated
+    """
+    from sqlalchemy import insert
+    from db_models.client_data import pacjent_duplicates
+    
+    try:
+        stmt = insert(pacjent_duplicates).values(
+            ID_pacjenta=original_id,
+            ID_zduplikowanego_pacjenta=duplicate_id,
+            Duplicated_field=duplicate_field,
+            Duplicated_value=duplicate_value
+        )
+        db.execute(stmt)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error recording duplicate relationship: {e}")
+    
 def create_pacjent_basic(db: Session, pacjent_data: PacjentCreateBasic, id_uzytkownika: int):
     # 1. Check for duplicates
     check_pacjent_duplicates(db, pacjent_data)
@@ -89,9 +145,9 @@ def create_pacjent_basic(db: Session, pacjent_data: PacjentCreateBasic, id_uzytk
     db.refresh(new_pacjent)
     return new_pacjent
 
-def import_pacjent(db: Session, pacjent_data: PacjentImport, id_uzytkownika: int):
+def import_pacjent(db: Session, pacjent_data: PacjentImport): # , id_uzytkownika: int
     # 1. Check for duplicates
-    check_pacjent_duplicates(db, pacjent_data)
+    duplicate_result = check_pacjent_duplicates_for_import(db, pacjent_data)
     # 2. Dynamic validation of all choice fields
     validate_choice_fields(db, pacjent_data)
     # 3. Convert to dict with DB column names
@@ -100,7 +156,7 @@ def import_pacjent(db: Session, pacjent_data: PacjentImport, id_uzytkownika: int
     # 4. Add backend-generated fields
     data_dict["Created"] = datetime.now()
     data_dict["Last_modified"] = datetime.now()
-    data_dict["ID_uzytkownika"] = id_uzytkownika
+    # data_dict["ID_uzytkownika"] = id_uzytkownika
 
     # 5. Conditional cleanup - optional
     if not data_dict.get("Niebieska_karta"):
@@ -113,11 +169,20 @@ def import_pacjent(db: Session, pacjent_data: PacjentImport, id_uzytkownika: int
         data_dict["Zawiadomienie"] = None
     
     # 6. Create SQLAlchemy object
+    # print(f'Importing pacjent with data: /n {data_dict}') #test
     new_pacjent = Pacjent(**data_dict)
+    # print(f'Created Pacjent object: /n {new_pacjent}') #test
     # 7. actually add to DB
-    db.add(new_pacjent)
-    db.commit()
+    db.add(new_pacjent) 
+    db.commit() 
     db.refresh(new_pacjent)
+
+    # 8. If duplicate found, record it
+    if duplicate_result:
+        original_id, duplicate_field, duplicate_value = duplicate_result
+        record_pacjent_duplicate(db, original_id, new_pacjent.ID_pacjenta, duplicate_field, duplicate_value)
+        print(f"Duplicate recorded: {new_pacjent.Imie} {new_pacjent.Nazwisko} is duplicate of ID {original_id}")
+    
     return new_pacjent
 
 def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel): # BaseModel, żeby mógł przyjmować PacjentCreateForm i PacjentUpdate
