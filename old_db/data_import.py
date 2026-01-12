@@ -276,7 +276,7 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
             
             # Create Pydantic model
             try:
-                wizyta_data['ID_pacjenta'] = get_correct_pacjent_id(db, wizyta_data['ID_pacjenta'])
+                # wizyta_data['ID_pacjenta'] = get_correct_pacjent_id(db, wizyta_data['ID_pacjenta']) # not all duplicates are actually duplicates, must be handled manually
                 wizyta = WizytaIndywidualnaImport(**wizyta_data)
             except Exception as e:
                 raise HTTPException(
