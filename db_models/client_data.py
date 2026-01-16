@@ -6,7 +6,7 @@ from db.db_connect import Base
 class Pacjent(Base):
     __tablename__ = "pacjenci"  # to musi być dokładnie ta sama nazwa, co nazwa tabeli, do której chcemy wrzucać dane
     __table_args__ = {'schema': 'client_data'}
-    ID_pacjenta = Column(Integer, primary_key=True)
+    ID_pacjenta = Column(Integer, primary_key=True, autoincrement='auto')
     ID_uzytkownika = Column(Integer, ForeignKey('user_data.users.ID_uzytkownika')) # osoba rejestrująca
     Created = Column(DateTime)
     Last_modified = Column(DateTime)
@@ -56,6 +56,14 @@ class Pacjent(Base):
     wizyty_indywidualne = relationship("WizytaIndywidualna", back_populates='pacjent')
     uzytkownik = relationship("User", back_populates="pacjenci")
     uczestnik_grupy = relationship('UczestnikGrupy', back_populates='pacjent')
+
+pacjent_duplicates = Table(
+    'pacjent_duplicates', Base.metadata,
+    Column('ID_pacjenta', Integer, ForeignKey('client_data.pacjenci.ID_pacjenta'), primary_key=True),
+    Column('ID_zduplikowanego_pacjenta', Integer, ForeignKey('client_data.pacjenci.ID_pacjenta'), primary_key=True),
+    Column('Duplicated_field', String),
+    Column('Duplicated_value', String)
+)
 
 class WizytaIndywidualna(Base):
     __tablename__ = "wizyty_indywidualne"

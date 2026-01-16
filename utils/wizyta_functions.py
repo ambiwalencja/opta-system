@@ -18,6 +18,7 @@ from schemas.wizyta_schemas import BaseModel, WizytaIndywidualnaCreate, WizytaIn
 from utils.validation import validate_choice, validate_choice_fields
 from utils.pacjent_functions import get_pacjent_by_id
 
+
 def core_save_wizyta(db: Session, wizyta_data: BaseModel):
     # 1. Dynamic validation of typ wizyty
     validate_choice(db, "Typ_wizyty", wizyta_data.typ_wizyty) # ???

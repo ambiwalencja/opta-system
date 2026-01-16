@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm.session import Session
 from old_db.old_db_connect import get_db as get_db_old
 from db.db_connect import get_db as get_db_new
-from old_db.data_import import import_table_to_dataframe, import_pacjenci_to_new_db, import_wizyty_ind_to_new_db, import_spotkania_grupowe_to_new_db
-from old_db.transform_old_db import transform_imported_table
+from old_db.data_import import (import_table_to_dataframe, 
+                                import_pacjenci_to_new_db, import_uczestnicy_grupy_to_new_db, 
+                                import_wizyty_ind_to_new_db, 
+                                import_spotkania_grupowe_to_new_db, 
+                                import_grupy_from_dict_to_new_db)
+from old_db.transform_old_db import transform_imported_table, transform_table_uczestnicy_grupy
 
 router = APIRouter(
     prefix="/old_db",
@@ -55,10 +59,16 @@ def import_to_new_db(old_db_table_name: str, new_db_table_name: str, db_old: Ses
                     "message": f"Import completed. Successfully imported {results['success_count']} visits.",
                     "errors": results['errors'] if results['error_count'] > 0 else None
                 }
+            elif new_db_table_name == "uczestnicy_grupy":
+                results = import_uczestnicy_grupy_to_new_db(df, db_new)
+                return {
+                    "message": f"Import completed. Successfully imported {results['success_count']} group participants.",
+                    "errors": results['errors'] if results['error_count'] > 0 else None
+                }
             elif new_db_table_name == "spotkania_grupowe":
                 results = import_spotkania_grupowe_to_new_db(df, db_new)
                 return {
-                    "message": f"Import completed. Successfully imported {results['success_count']} visits.",
+                    "message": f"Import completed. Successfully imported {results['success_count']} group visits.",
                     "errors": results['errors'] if results['error_count'] > 0 else None
                 }
         else:
@@ -71,3 +81,29 @@ def import_to_new_db(old_db_table_name: str, new_db_table_name: str, db_old: Ses
             status_code=500,
             detail=f"Error during import: {str(e)}"
         )
+    
+@router.post('/import_grupy')
+def import_grupy(db: Session = Depends(get_db_new)):
+    try:
+        grupy = import_grupy_from_dict_to_new_db(db)
+        return {
+            "message": "Import of grupy completed successfully."
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error importing grupy: {str(e)}"
+        )
+    
+# @router.get('/test')
+# def test_endpoint(old_db_table_name: str, new_db_table_name: str, db_old: Session = Depends(get_db_old), db_new: Session = Depends(get_db_new)):
+#     try:
+#         df = transform_imported_table(old_db_table_name, new_db_table_name, db_old, db_new)
+
+#         df = transform_table_uczestnicy_grupy(df, db_new)
+#         return {"message": "success"}
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"blabla error: {str(e)}"
+#         )

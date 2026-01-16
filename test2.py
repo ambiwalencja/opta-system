@@ -1,0 +1,3 @@
+from old_db.data_import import import_grupy_from_dict_to_new_db
+
+import_grupy_from_dict_to_new_db()
