@@ -8,6 +8,7 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional, Dict, Any, List, Tuple
 
 from db_models.client_data import Pacjent
+from db_models.config import PossibleValues
 
 def get_pacjent_counts_by_year(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
     pacjent_counts_query = db.query(
@@ -118,15 +119,18 @@ def get_single_choice_form_variable_counts(db: Session, variable_name: str, date
     variable_counts = variable_counts_query.group_by(variable_column).all()
     return {value: count for value, count in variable_counts}
 
-def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
-    # TODO: to na razie propozycja AI, sprawdzić to
-    
+def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:    
     if not hasattr(Pacjent, variable_name):
         raise ValueError(f"Invalid variable name: {variable_name}")
     variable_column = getattr(Pacjent, variable_name)
-    all_choices = db.query(distinct(func.jsonb_array_elements_text(variable_column))).subquery()
+    all_choices = db.query(PossibleValues.Possible_values).filter(
+                PossibleValues.Variable_name == variable_name).scalar() # output is a dict!
+    print("all_choices TYPE:", type(all_choices))
+    print("ALL CHOICES:", all_choices)
+    if not all_choices:
+        raise ValueError(f"No possible values found for variable: {variable_name}")
     choice_counts = {}
-    for (choice,) in db.query(all_choices):
+    for choice in all_choices.keys():
         count_query = db.query(func.count(Pacjent.ID_pacjenta)).filter(
             func.jsonb_contains(variable_column, f'["{choice}"]')
         )

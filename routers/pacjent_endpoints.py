@@ -5,7 +5,8 @@ from fastapi_pagination import Page
 
 from db.db_connect import get_db
 from auth.oauth2 import get_user_from_token
-from schemas.pacjent_schemas import PacjentCreateBasic, PacjentCreateForm, PacjentDisplay, PacjentUpdate
+from schemas.pacjent_schemas import (PacjentCreateBasic, PacjentCreateForm, 
+                                     PacjentDisplay, PacjentUpdate)
 from db_models.user_data import User
 from utils import pacjent_functions
 
@@ -24,16 +25,16 @@ def create_pacjent_1(request: PacjentCreateBasic, db: Session = Depends(get_db),
 def create_pacjent_2(id_pacjenta: int, request: PacjentCreateForm, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return pacjent_functions.create_pacjent_form(db, id_pacjenta, request)
 
-@router.put('/update/{id_pacjenta}')
-def update_pacjent(id_pacjenta: int, request: PacjentUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.put('/update')
+def update_pacjent(id_pacjenta: int = FastapiQuery(...), request: PacjentUpdate = None, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return pacjent_functions.update_pacjent(db, id_pacjenta, request)
 
-@router.get('/get/{id_pacjenta}')
-def get_pacjent(id_pacjenta: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.get('/get')
+def get_pacjent(id_pacjenta: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return pacjent_functions.get_pacjent_by_id(db, id_pacjenta)
 
-@router.delete('/delete/{id_pacjenta}')
-def delete_pacjent(id_pacjenta: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.delete('/delete')
+def delete_pacjent(id_pacjenta: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return pacjent_functions.delete_pacjent(db, id_pacjenta)
 
 @router.get('/search', response_model=list[PacjentDisplay])
