@@ -72,6 +72,21 @@ def get_all_single_choice_form_variable_counts(db: Session = Depends(get_db),
         result[variable_name] = counts
     return result
 
+@router.get('/pacjent_form_text_all/')
+def get_all_text_form_variable_counts(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    variable_names = report_variables_lists.text_fields
+    result = {}
+    for variable_name in variable_names:
+        counts = report_functions.get_single_choice_form_variable_counts(db, variable_name, date_range)
+        result[variable_name] = counts
+    return result
+
 @router.get('/pacjent_form_multiple/')
 def get_multiple_choice_form_variable_counts(variable_name: str = FastapiQuery(..., description="Variable name from pacjent form"),
                        db: Session = Depends(get_db), 
@@ -82,3 +97,18 @@ def get_multiple_choice_form_variable_counts(variable_name: str = FastapiQuery(.
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
     date_range = (start, end) if start and end else None
     return report_functions.get_multiple_choice_form_variable_counts(db, variable_name, date_range)
+
+@router.get('/pacjent_form_multiple_all/')
+def get_all_multiple_choice_form_variable_counts(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    variable_names = report_variables_lists.multiple_choice_fields
+    result = {}
+    for variable_name in variable_names:
+        counts = report_functions.get_multiple_choice_form_variable_counts(db, variable_name, date_range)
+        result[variable_name] = counts
+    return result

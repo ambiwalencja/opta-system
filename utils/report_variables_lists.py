@@ -24,3 +24,14 @@ multiple_choice_fields = [
     "Problemy",
     "Zaproponowane_wsparcie"
 ]
+
+text_fields = [
+    "Korzystanie_z_pomocy_inne",
+    "Placowka_kierujaca_inne",
+    # "Niebieska_karta_inicjator",
+    # "Grupa_robocza_sklad",
+    # "Plan_pomocy_opis",
+    "Problemy_inne",
+    "Zaproponowane_wsparcie_inne",
+    "Zrodlo_informacji_inne"
+]

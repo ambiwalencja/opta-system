@@ -6,6 +6,7 @@ from sqlalchemy.orm.session import Session
 # from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional, Dict, Any, List, Tuple
+import json
 
 from db_models.client_data import Pacjent
 from db_models.config import PossibleValues
@@ -122,17 +123,15 @@ def get_single_choice_form_variable_counts(db: Session, variable_name: str, date
 def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:    
     if not hasattr(Pacjent, variable_name):
         raise ValueError(f"Invalid variable name: {variable_name}")
-    variable_column = getattr(Pacjent, variable_name)
+    variable_column = getattr(Pacjent, variable_name) # returns Instrument.column
     all_choices = db.query(PossibleValues.Possible_values).filter(
                 PossibleValues.Variable_name == variable_name).scalar() # output is a dict!
-    print("all_choices TYPE:", type(all_choices))
-    print("ALL CHOICES:", all_choices)
     if not all_choices:
         raise ValueError(f"No possible values found for variable: {variable_name}")
     choice_counts = {}
     for choice in all_choices.keys():
         count_query = db.query(func.count(Pacjent.ID_pacjenta)).filter(
-            func.jsonb_contains(variable_column, f'["{choice}"]')
+            variable_column.contains([choice])
         )
         if date_range:
             count_query = count_query.filter(

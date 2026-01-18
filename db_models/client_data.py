@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, Numeric, String, DateTime, Date, JSON, Boolean, ForeignKey, MetaData, Table
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from db.db_connect import Base
 
@@ -28,7 +29,7 @@ class Pacjent(Base):
     Plec = Column(String)
     Zrodlo_informacji = Column(String)
     Zrodlo_informacji_inne = Column(String) # warunkowo
-    Korzystanie_z_pomocy = Column(JSON)
+    Korzystanie_z_pomocy = Column(JSONB)
     Korzystanie_z_pomocy_inne = Column(String) # warunkowo
     Placowka_kierujaca = Column(String)
     Placowka_kierujaca_inne = Column(String) # warunkowo
@@ -44,10 +45,10 @@ class Pacjent(Base):
     Postepowanie_karne = Column(Boolean)
     Postepowanie_rodzinne = Column(Boolean)
     Liczba_dzieci = Column(Integer)
-    Problemy = Column(JSON)
+    Problemy = Column(JSONB)
     Problemy_inne = Column(String) # warunkowo
     Notatka_diagnoza_sytuacji = Column(String) # do decyzji czy tutaj czy przy wizycie
-    Zaproponowane_wsparcie = Column(JSON)
+    Zaproponowane_wsparcie = Column(JSONB)
     Zaproponowane_wsparcie_inne = Column(String) # warunkowo
     Ewaluacja = Column(Boolean)
     Status_pacjenta = Column(String) # albo int
