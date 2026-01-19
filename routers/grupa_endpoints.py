@@ -1,5 +1,5 @@
 from sqlalchemy.orm.session import Session
-from fastapi import APIRouter, Depends #, HTTPException, status
+from fastapi import APIRouter, Depends, Query as FastapiQuery #, HTTPException, status
 
 from db.db_connect import get_db
 from auth.oauth2 import get_user_from_token
@@ -19,38 +19,38 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get('/{id_grupy}', response_model=GrupaDisplay)
-def get_grupa(id_grupy: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.get('/', response_model=GrupaDisplay)
+def get_grupa(id_grupy: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.get_grupa_by_id(db, id_grupy)
 
 @router.post('/create', response_model=GrupaDisplay)
 def create_grupa(request: GrupaCreate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.create_grupa(db, request, current_user.ID_uzytkownika)
 
-@router.put('/update/{id_grupy}', response_model=GrupaDisplay)
-def update_grupa(id_grupy: int, request: GrupaUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.put('/update', response_model=GrupaDisplay)
+def update_grupa(id_grupy: int = FastapiQuery(...), request: GrupaUpdate = None, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.update_grupa(db, id_grupy, request, current_user.ID_uzytkownika)
 
-@router.delete('/delete/{id_grupy}')
-def delete_grupa(id_grupy: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.delete('/delete')
+def delete_grupa(id_grupy: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.delete_grupa(db, id_grupy)
 
 @router.post('/uczestnik/create', response_model=UczestnikGrupyDisplay)
 def create_uczestnik_grupy(request: UczestnikGrupyCreate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.create_uczestnik_grupy(db, request)
 
-@router.get('/uczestnik/{id_uczestnika_grupy}', response_model=UczestnikGrupyDisplay)
-def get_uczestnik_grupy(id_uczestnika_grupy: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.get('/uczestnik', response_model=UczestnikGrupyDisplay)
+def get_uczestnik_grupy(id_uczestnika_grupy: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.get_uczestnik_grupy_by_id(db, id_uczestnika_grupy)
 
-@router.put('/uczestnik/update/{id_uczestnika_grupy}', response_model=UczestnikGrupyDisplay)
-def update_uczestnik_grupy(id_uczestnika_grupy: int, request: UczestnikGrupyUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.put('/uczestnik/update', response_model=UczestnikGrupyDisplay)
+def update_uczestnik_grupy(id_uczestnika_grupy: int = FastapiQuery(...), request: UczestnikGrupyUpdate = None, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.update_uczestnik_grupy(db, id_uczestnika_grupy, request)
 
-@router.delete('/uczestnik/delete/{id_uczestnika_grupy}')
-def delete_uczestnik_grupy(id_uczestnika_grupy: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.delete('/uczestnik/delete')
+def delete_uczestnik_grupy(id_uczestnika_grupy: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.delete_uczestnik_grupy(db, id_uczestnika_grupy)
 
-@router.get('/uczestnicy/{id_grupy}', response_model=list[UczestnikGrupyDisplay])
-def show_uczestnicy_grupy(id_grupy: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+@router.get('/uczestnicy', response_model=list[UczestnikGrupyDisplay])
+def show_uczestnicy_grupy(id_grupy: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     return grupa_functions.show_uczestnicy_grupy(db, id_grupy)
