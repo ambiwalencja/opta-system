@@ -112,3 +112,45 @@ def get_all_multiple_choice_form_variable_counts(db: Session = Depends(get_db),
         counts = report_functions.get_multiple_choice_form_variable_counts(db, variable_name, date_range)
         result[variable_name] = counts
     return result
+
+@router.get('/pacjent_korzystanie_z_pomocy/')
+def get_pacjent_korzystanie_z_pomocy_as_bool(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_multiple_choice_variable_as_bool_counts(db, "Korzystanie_z_pomocy", report_variables_lists.korzystanie_z_pomocy_options, date_range)
+    # return report_functions.get_korzystanie_z_pomocy_bool_counts(db, date_range)
+
+@router.get('/pacjent_zaproponowane_wsparcie_indywidualne/')
+def get_pacjent_zaproponowane_wsparcie_indywidualne_as_bool(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_multiple_choice_variable_as_bool_counts(db, "Zaproponowane_wsparcie", report_variables_lists.zaproponowane_wsparcie_indywidualne_options, date_range)
+    # return report_functions.get_zaproponowane_wsparcie_indywidualne_bool_counts(db, date_range)
+
+@router.get('/pacjent_zaproponowane_wsparcie_grupowe/')
+def get_pacjent_zaproponowane_wsparcie_grupowe_as_bool(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_multiple_choice_variable_as_bool_counts(db, "Zaproponowane_wsparcie", report_variables_lists.zaproponowane_wsparcie_grupowe_options, date_range)
+
+@router.get('/pacjent_postepowanie_bool/')
+def get_pacjent_postepowanie_bool(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_postepowanie_as_bool_counts(db, date_range)

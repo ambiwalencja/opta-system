@@ -35,3 +35,32 @@ text_fields = [
     "Zaproponowane_wsparcie_inne",
     "Zrodlo_informacji_inne"
 ]
+
+zaproponowane_wsparcie_indywidualne_options = [
+        "działania informacyjno-konsultacyjne",
+        "konsultacje prawne",
+        "konsultacje pedagogiczne",
+        "konsultacje psychologiczne",
+        "pomoc psychologiczna",
+        "inne - konsylium psycholog/prawnik",
+        "inne - pomoc 'adwokata socjalnego'",
+        "inne - konsultacje do grupy wsparcia",
+        "inne - konsultacje do grupy rozwojowej"
+]
+
+zaproponowane_wsparcie_grupowe_options = [
+        "grupa wsparcia",
+        "warsztat, trening",
+        "inne - grupa o charakterze rozwojowym."
+]
+
+korzystanie_z_pomocy_options = [
+        "ośrodek pomocy społecznej",
+        "poradnia psych-pedagogiczna",
+        "poradnia rodzinna",
+        "poradnia odwykowa/DZRPA",
+        "placówka ochrony zdrowia",
+        "organizacja pozarządowa",
+        "w ramach tej samej placówki",
+        "inne - jakie?"
+]

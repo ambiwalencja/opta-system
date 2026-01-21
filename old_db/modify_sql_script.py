@@ -1,8 +1,8 @@
 import os
 
 # --- 1. Setup: Configuration ---
-INPUT_FILE = 'backup-on-2026-01-03-23-18-02.sql'   # The name of your original SQL file
-OUTPUT_FILE = 'backup-on-2026-01-03-23-18-02-cleaned.sql' # The name of the modified file
+INPUT_FILE = 'backup-on-2026-01-21-15-05-55.sql'   # The name of your original SQL file
+OUTPUT_FILE = 'backup-on-2026-01-21-15-05-55-cleaned.sql' # The name of the modified file
 
 # Define all the modifications you want to make here.
 # Key: The text to find | Value: The text to replace it with

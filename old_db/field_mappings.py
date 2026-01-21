@@ -127,7 +127,7 @@ WSPARCIE_MAP = {
     9: "inne - pomoc 'adwokata socjalnego'",
     10: "inne - konsultacje do grupy wsparcia",
     11: "inne - konsultacje do grupy rozwojowej",
-    12: "inne - grupa o charakterze rozwojowym.",
+    12: "inne - grupa o charakterze rozwojowym.", #TODO: uwaga tu jest kropka i w pozostałych miejscach też przy tej opcji. docelowo przy migracji usunąć.
     13: "inne - jakie?"
 }
 
@@ -194,7 +194,7 @@ WIZYTY_COLUMN_MAPPING = {
 }
 
 TYP_WIZYTY_INDYWIDUALNEJ_MAP = {
-    1: 'specjalista ds. przeciwdziałania przemocy', 
+    1: 'specjalista ds. przeciwdziałania przemocy',
     2: 'adwokat socjalny',
     3: 'psycholog - konsultacja diagnostyczna',
     4: 'psycholog - konsultacja rodzicielska',
@@ -209,12 +209,12 @@ NAZWA_GRUPY_MAP = {
     8: 'grupa wsparcia',
     9: 'grupa o charakterze rozwojowym',
     10: 'trening antystresowy',
-    11: 'warsztat psychoedukacyjny 1', # odtąd nie ma żadnego spotkania
+    11: 'warsztat psychoedukacyjny 1',
     12: 'warsztat psychoedukacyjny 2',
     13: 'warsztat psychoedukacyjny 3',
     14: 'warsztat psychoedukacyjny 4',
     15: 'warsztat psychoedukacyjny 5',
-    16: 'warsztat psychoedukacyjny 6', # odtąd znowu są
+    16: 'warsztat psychoedukacyjny 6',
     18: 'trening antystresowy 2020',
     20: 'trening antystresowy 2021 - grupa 1',
     21: 'trening antystresowy 2021 - grupa 2',
@@ -229,7 +229,21 @@ NAZWA_GRUPY_MAP = {
     30: 'Grupa wsparcia 2022 - wiosna',
     31: 'Grupa wsparcia 2022 - jesień',
     32: 'Warsztat psychoedukacyjny 2022 - wiosna',
-    33: 'Warsztat psychoedukacyjny 2022 - jesień'
+    33: 'Warsztat psychoedukacyjny 2022 - jesień',
+    34: 'grupa rozwojowa Wiosna 2023',
+    35: 'trening antystresowy 2023',
+    36: 'grupa dramaterapeutyczna 2023',
+    37: 'trening antystresowy 2024',
+    38: 'grupa dramaterapeutyczna 2024',
+    39: 'grupa rozwojowa jesień 2023',
+    40: 'grupa rozwojowa wiosna 2024',
+    41: 'Grupa wsparcia 2023 - wiosna',
+    42: 'Grupa wsparcia 2023 - jesień',
+    43: 'Grupa wsparcia 2024 - wiosna',
+    44: 'grupa rozwojowa jesień 2024',
+    45: 'Grupa wsparcia 2024 - jesień',
+    46: 'Grupa rozwojowa 2025 - wiosna',
+    47: 'Grupa wsparcia 2025 - wiosna'
 }
 
 GRUPY_TABLE_MAP = {
@@ -256,8 +270,21 @@ GRUPY_TABLE_MAP = {
     30: ['Grupa wsparcia 2022 - wiosna', '2022-03-01', 'grupa wsparcia'],
     31: ['Grupa wsparcia 2022 - jesień', '2022-09-01', 'grupa wsparcia'],
     32: ['Warsztat psychoedukacyjny 2022 - wiosna', '2022-03-01', 'warsztat psychoedukacyjny'],
-    33: ['Warsztat psychoedukacyjny 2022 - jesień', '2020-09-01', 'warsztat psychoedukacyjny']
-    # TODO: tutaj trzeba będzie uzupełnić dla najnowszej bazy, bo moim zdaniem nie da się tego łatwo zautomatyzować
+    33: ['Warsztat psychoedukacyjny 2022 - jesień', '2020-09-01', 'warsztat psychoedukacyjny'],
+    34: ['grupa rozwojowa Wiosna 2023', '2023-03-01', 'grupa o charakterze rozwojowym'],
+    35: ['trening antystresowy 2023', '2023-01-01', 'trening antystresowy'],
+    36: ['grupa dramaterapeutyczna 2023', '2023-01-01', 'grupa wsparcia'], # TODO: zapytać jaki to ma być typ
+    37: ['trening antystresowy 2024', '2024-01-01', 'trening antystresowy'],
+    38: ['grupa dramaterapeutyczna 2024', '2024-01-01', 'grupa wsparcia'], # TODO: zapytać jaki to ma być typ
+    39: ['grupa rozwojowa jesień 2023', '2023-09-01', 'grupa o charakterze rozwojowym'],
+    40: ['grupa rozwojowa wiosna 2024', '2024-03-01', 'grupa o charakterze rozwojowym'],
+    41: ['Grupa wsparcia 2023 - wiosna', '2023-03-01', 'grupa wsparcia'],
+    42: ['Grupa wsparcia 2023 - jesień', '2023-09-01', 'grupa wsparcia'],
+    43: ['Grupa wsparcia 2024 - wiosna', '2024-03-01', 'grupa wsparcia'],
+    44: ['grupa rozwojowa jesień 2024', '2024-09-01', 'grupa o charakterze rozwojowym'],
+    45: ['Grupa wsparcia 2024 - jesień', '2024-09-01', 'grupa wsparcia'],
+    46: ['Grupa rozwojowa 2025 - wiosna', '2025-03-01', 'grupa o charakterze rozwojowym'],
+    47: ['Grupa wsparcia 2025 - wiosna', '2025-03-01', 'grupa wsparcia']
 }
 
 
