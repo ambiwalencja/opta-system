@@ -61,7 +61,7 @@ def get_age_group_counts(db: Session, date_range: Optional[Tuple[date, date]] = 
 def get_single_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[Any, int]:
     if not hasattr(Pacjent, variable_name):
         raise ValueError(f"Invalid variable name: {variable_name}")
-    if variable_name not in report_variables_lists.single_choice_form_variables:
+    if variable_name not in report_variables_lists.single_choice_fields:
         raise ValueError(f"Variable {variable_name} is not a single-choice form variable.")
     variable_column = getattr(Pacjent, variable_name)
     variable_counts_query = db.query(
@@ -76,31 +76,31 @@ def get_single_choice_form_variable_counts(db: Session, variable_name: str, date
     variable_counts = variable_counts_query.group_by(variable_column).all()
     return {value: count for value, count in variable_counts}
 
-def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:    
+def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, Any]:    
     if not hasattr(Pacjent, variable_name):
         raise ValueError(f"Invalid variable name: {variable_name}")
-    if variable_name not in report_variables_lists.multiple_choice_form_variables:
+    if variable_name not in report_variables_lists.multiple_choice_fields:
         raise ValueError(f"Variable {variable_name} is not a multiple-choice form variable.")
     variable_column = getattr(Pacjent, variable_name) # returns Instrument.column
     all_choices = db.query(PossibleValues.Possible_values).filter(
                 PossibleValues.Variable_name == variable_name).scalar() # output is a dict!
     if not all_choices:
         raise ValueError(f"No possible values found for variable: {variable_name}")
+    count_query = db.query(func.count(variable_column))
+    if date_range:
+        count_query = count_query.filter(
+            Pacjent.Data_zgloszenia > date_range[0],
+            Pacjent.Data_zgloszenia <= date_range[1]
+        )
+    count_all = count_query.scalar()
     choice_counts = {}
     for choice in all_choices.keys():
-        # count_query = db.query(func.count(Pacjent.ID_pacjenta)).filter(
-        count_query = db.query(func.count(variable_column)).filter(
-            variable_column.contains([choice])
-        )
-        if date_range:
-            count_query = count_query.filter(
-                Pacjent.Data_zgloszenia > date_range[0],
-                Pacjent.Data_zgloszenia <= date_range[1]
-            )
-        count = count_query.scalar()
+        count = count_query.filter(variable_column.contains([choice])).scalar()
         choice_counts[choice] = count
-        # TODO: dodać sumę wszystkich do słownika
-    return choice_counts
+    return {
+        "choices": choice_counts,
+        "total": count_all
+    }
 
 def OLD_get_korzystanie_z_pomocy_bool_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[bool, int]:
     counts_query = db.query(func.count(Pacjent.ID_pacjenta))
