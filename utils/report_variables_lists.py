@@ -64,3 +64,15 @@ korzystanie_z_pomocy_options = [
         "w ramach tej samej placówki",
         "inne - jakie?"
 ]
+
+typ_wizyty_options = [
+        "specjalista ds. przeciwdziałania przemocy",
+        "adwokat socjalny",
+        "psycholog - konsultacja diagnostyczna",
+        "psycholog - konsultacja rodzicielska",
+        "prawnik - konsultacja / porada prawna",
+        "psycholog/terapeuta - wsparcie",
+        "konsultacje do grupy wsparcia i do grupy rozwojowej",
+        'indywidualne konsultacje w zespole psycholog-prawnik',
+        'indywidualne konsultacje do grupy trening antystresowy 2020'
+]

@@ -8,7 +8,7 @@ from sqlalchemy.orm.session import Session
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional, Dict, Any, List, Tuple
 
-from db_models.client_data import Pacjent
+from db_models.client_data import Pacjent, WizytaIndywidualna
 from db_models.config import PossibleValues
 from utils import report_variables_lists
 
@@ -162,3 +162,43 @@ def get_postepowanie_as_bool_counts(db: Session, date_range: Optional[Tuple[date
         (Pacjent.Postepowanie_rodzinne == True)
     ).scalar()
     return {True: counts_true, False: counts_all - counts_true}
+
+def get_wizyty_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    wizyty_counts_query = db.query(
+        func.count(WizytaIndywidualna.ID_wizyty), 
+        WizytaIndywidualna.Typ_wizyty.label('typ_wizyty')
+        )
+    if date_range:
+        wizyty_counts_query = wizyty_counts_query.filter(
+            WizytaIndywidualna.Data_wizyty > date_range[0], 
+            WizytaIndywidualna.Data_wizyty <= date_range[1]
+            )
+    wizyty_counts = wizyty_counts_query.group_by('typ_wizyty').all()
+    return {typ_wizyty: count for typ_wizyty, count in wizyty_counts}
+
+def get_pacjent_counts_by_wizyty_number(db: Session, 
+                                        visit_type: Optional[str] = None,
+                                        date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    subquery = db.query(
+        WizytaIndywidualna.ID_pacjenta,
+        func.count(WizytaIndywidualna.ID_wizyty).label('wizyty_count')
+    )
+    if date_range:
+        subquery = subquery.filter(
+            WizytaIndywidualna.Data_wizyty > date_range[0],
+            WizytaIndywidualna.Data_wizyty <= date_range[1]
+        )
+    if visit_type:
+        subquery = subquery.filter(WizytaIndywidualna.Typ_wizyty == visit_type)
+    subquery = subquery.group_by(WizytaIndywidualna.ID_pacjenta).subquery() # tutaj dostajemy liczbę wizyt na pacjenta
+    total_pacjenci = db.query(func.count(subquery.c.ID_pacjenta)).scalar() or 0 # must calculate undependently
+    counts = db.query(
+        subquery.c.wizyty_count,
+        func.count(subquery.c.ID_pacjenta).label('pacjent_count') # sumy pacjentów - przygotowane do grupowania
+    ).group_by(subquery.c.wizyty_count).all() # grupujemy po liczbie wizyt
+    # TODO: dodać przedziały: 1-3, 4-20, 21+ wizyt
+    result = {wizyty_count: pacjent_count for wizyty_count, pacjent_count in counts} 
+    return {
+        "total_pacjenci": total_pacjenci,
+        "counts_by_wizyty_number": result
+    }

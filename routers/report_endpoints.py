@@ -154,3 +154,40 @@ def get_pacjent_postepowanie_bool(db: Session = Depends(get_db),
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
     date_range = (start, end) if start and end else None
     return report_functions.get_postepowanie_as_bool_counts(db, date_range)
+
+@router.get('/wizyty_counts')
+def get_wizyty_counts(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_wizyty_counts(db, date_range)
+
+@router.get('/pacjenci_by_wizyty/')
+def get_pacjenci_by_wizyty(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       visit_type: Optional[str] = FastapiQuery(None, description="Visit type"),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_pacjent_counts_by_wizyty_number(db, visit_type, date_range)
+
+@router.get('/pacjenci_by_wizyty_by_type/')
+def get_pacjenci_by_wizyty(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    visit_type_list = report_variables_lists.typ_wizyty_options
+    result = {}
+    # result["visit count"] = "number of patients"
+    for visit_type in visit_type_list:
+        counts = report_functions.get_pacjent_counts_by_wizyty_number(db, visit_type, date_range)
+        result[visit_type] = counts
+    return result
