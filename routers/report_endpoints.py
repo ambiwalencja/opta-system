@@ -177,7 +177,7 @@ def get_pacjenci_by_wizyty(db: Session = Depends(get_db),
     return report_functions.get_pacjent_counts_by_wizyty_number(db, visit_type, date_range)
 
 @router.get('/pacjenci_by_wizyty_by_type/')
-def get_pacjenci_by_wizyty(db: Session = Depends(get_db), 
+def get_pacjenci_by_wizyty_by_type(db: Session = Depends(get_db), 
                        current_user: UserSignIn = Depends(get_user_from_token("access_token")),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):

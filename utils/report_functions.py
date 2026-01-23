@@ -179,26 +179,33 @@ def get_wizyty_counts(db: Session, date_range: Optional[Tuple[date, date]] = Non
 def get_pacjent_counts_by_wizyty_number(db: Session, 
                                         visit_type: Optional[str] = None,
                                         date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
-    subquery = db.query(
+    subquery_stmt = db.query(
         WizytaIndywidualna.ID_pacjenta,
         func.count(WizytaIndywidualna.ID_wizyty).label('wizyty_count')
     )
     if date_range:
-        subquery = subquery.filter(
+        subquery_stmt = subquery_stmt.filter(
             WizytaIndywidualna.Data_wizyty > date_range[0],
             WizytaIndywidualna.Data_wizyty <= date_range[1]
         )
     if visit_type:
-        subquery = subquery.filter(WizytaIndywidualna.Typ_wizyty == visit_type)
-    subquery = subquery.group_by(WizytaIndywidualna.ID_pacjenta).subquery() # tutaj dostajemy liczbę wizyt na pacjenta
-    total_pacjenci = db.query(func.count(subquery.c.ID_pacjenta)).scalar() or 0 # must calculate undependently
+        subquery_stmt = subquery_stmt.filter(WizytaIndywidualna.Typ_wizyty == visit_type)
+    subquery = subquery_stmt.group_by(WizytaIndywidualna.ID_pacjenta).subquery() # tutaj dostajemy liczbę wizyt na pacjenta
     counts = db.query(
         subquery.c.wizyty_count,
         func.count(subquery.c.ID_pacjenta).label('pacjent_count') # sumy pacjentów - przygotowane do grupowania
-    ).group_by(subquery.c.wizyty_count).all() # grupujemy po liczbie wizyt
-    # TODO: dodać przedziały: 1-3, 4-20, 21+ wizyt
-    result = {wizyty_count: pacjent_count for wizyty_count, pacjent_count in counts} 
+    ).group_by(subquery.c.wizyty_count).all() # grupujemy po liczbie wizyt; wynik to lista tupli
+
+    result = {label: 0 for label, _ in report_variables_lists.WIZYTY_RANGES}
+    for wizyty_count, pacjent_count in counts:
+        for label, limit in report_variables_lists.WIZYTY_RANGES:
+            if wizyty_count <= limit:
+                result[label] += pacjent_count
+                break
+    # result = {wizyty_count: pacjent_count for wizyty_count, pacjent_count in counts}
     return {
-        "total_pacjenci": total_pacjenci,
+        "total_pacjenci": sum(result.values()),
         "counts_by_wizyty_number": result
     }
+# TODO: zapytać mamę o godziny wizyt indywidualnych!!! po pierwsze czy dany typ wizyty ma zawsze mieć
+# ten sam czas trwania, czy to się może zmieniać, i po drugie czy ten raport godzinowy jest potrzebny

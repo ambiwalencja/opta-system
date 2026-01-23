@@ -76,3 +76,9 @@ typ_wizyty_options = [
         'indywidualne konsultacje w zespole psycholog-prawnik',
         'indywidualne konsultacje do grupy trening antystresowy 2020'
 ]
+
+WIZYTY_RANGES = [
+        ("1-3", 3),
+        ("4-20", 20),
+        ("21+", float('inf'))
+    ]
