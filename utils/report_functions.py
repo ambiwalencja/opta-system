@@ -1,15 +1,16 @@
 from fastapi import HTTPException, status
 from datetime import datetime, date
-from sqlalchemy import Column, Numeric, func, distinct, Date, Boolean, Integer, desc
+from sqlalchemy import Column, Numeric, func, distinct, Date, Boolean, Integer, desc, cast, String
+from sqlalchemy.dialects.postgresql import ARRAY
 # from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
 # from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional, Dict, Any, List, Tuple
-import json
 
-from db_models.client_data import Pacjent
+from db_models.client_data import Pacjent, WizytaIndywidualna
 from db_models.config import PossibleValues
+from utils import report_variables_lists
 
 def get_pacjent_counts_by_year(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
     pacjent_counts_query = db.query(
@@ -24,19 +25,6 @@ def get_pacjent_counts_by_year(db: Session, date_range: Optional[Tuple[date, dat
     pacjent_counts = pacjent_counts_query.group_by('year').order_by('year').all()
     return {year: count for year, count in pacjent_counts}
 
-def get_sex_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
-    sex_counts_query = db.query(
-        Pacjent.Plec,
-        func.count(Pacjent.ID_pacjenta).label('count')
-    )
-    if date_range:
-        sex_counts_query = sex_counts_query.filter(
-            Pacjent.Data_zgloszenia > date_range[0],
-            Pacjent.Data_zgloszenia <= date_range[1]
-            )
-    sex_counts = sex_counts_query.group_by(Pacjent.Plec).all()
-    return {sex: count for sex, count in sex_counts}
-
 def get_average_age_by_year(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[int, float]:
     average_age_query = db.query(
         func.extract('year', Pacjent.Data_zgloszenia).cast(Integer).label('year'),
@@ -49,21 +37,13 @@ def get_average_age_by_year(db: Session, date_range: Optional[Tuple[date, date]]
     average_age_data = average_age_query.group_by('year').order_by('year').all()
     return {year: average_age for year, average_age in average_age_data}
 
-# TODO: ustalić z mamą jakie przedziały wiekowe mają być
 def get_age_group_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
     age_groups = {
         '18-25': (18, 25),
         '26-35': (26, 35),
         '36-45': (36, 45),
         '46-55': (46, 55),
-        '56-65': (56, 65),
-        '66+': (66, 150)
-    }
-    age_groups_2 = {
-        '18-30': (18, 30),
-        '31-45': (31, 45),
-        '46-60': (46, 60),
-        '61+': (61, 150)
+        '56+': (56, 150)
     }
     age_group_counts = {}
     for group_name, (age_min, age_max) in age_groups.items():
@@ -78,40 +58,16 @@ def get_age_group_counts(db: Session, date_range: Optional[Tuple[date, date]] = 
         age_group_counts[group_name] = count
     return age_group_counts
 
-def get_district_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
-    district_counts_query = db.query(
-        Pacjent.Dzielnica,
-        func.count(Pacjent.ID_pacjenta).label('count')
-    )
-    if date_range:
-        district_counts_query = district_counts_query.filter(
-            Pacjent.Data_zgloszenia > date_range[0],
-            Pacjent.Data_zgloszenia <= date_range[1]
-            )
-    district_counts = district_counts_query.group_by(Pacjent.Dzielnica).all()
-    return {district: count for district, count in district_counts}
-
-def get_employment_status_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
-    employment_status_counts_query = db.query(
-        Pacjent.Status_zawodowy,
-        func.count(Pacjent.ID_pacjenta).label('count')
-    )
-    if date_range:
-        employment_status_counts_query = employment_status_counts_query.filter(
-            Pacjent.Data_zgloszenia > date_range[0],
-            Pacjent.Data_zgloszenia <= date_range[1]
-            )
-    employment_status_counts = employment_status_counts_query.group_by(Pacjent.Status_zawodowy).all()
-    return {status: count for status, count in employment_status_counts}
-
 def get_single_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[Any, int]:
     if not hasattr(Pacjent, variable_name):
         raise ValueError(f"Invalid variable name: {variable_name}")
+    if variable_name not in report_variables_lists.single_choice_fields:
+        raise ValueError(f"Variable {variable_name} is not a single-choice form variable.")
     variable_column = getattr(Pacjent, variable_name)
     variable_counts_query = db.query(
         variable_column,
         func.count(Pacjent.ID_pacjenta).label('count')
-    )
+    ).filter(variable_column.is_not(None))
     if date_range:
         variable_counts_query = variable_counts_query.filter(
             Pacjent.Data_zgloszenia > date_range[0],
@@ -120,24 +76,136 @@ def get_single_choice_form_variable_counts(db: Session, variable_name: str, date
     variable_counts = variable_counts_query.group_by(variable_column).all()
     return {value: count for value, count in variable_counts}
 
-def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:    
+def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, Any]:    
     if not hasattr(Pacjent, variable_name):
         raise ValueError(f"Invalid variable name: {variable_name}")
+    if variable_name not in report_variables_lists.multiple_choice_fields:
+        raise ValueError(f"Variable {variable_name} is not a multiple-choice form variable.")
     variable_column = getattr(Pacjent, variable_name) # returns Instrument.column
     all_choices = db.query(PossibleValues.Possible_values).filter(
                 PossibleValues.Variable_name == variable_name).scalar() # output is a dict!
     if not all_choices:
         raise ValueError(f"No possible values found for variable: {variable_name}")
+    count_query = db.query(func.count(variable_column))
+    if date_range:
+        count_query = count_query.filter(
+            Pacjent.Data_zgloszenia > date_range[0],
+            Pacjent.Data_zgloszenia <= date_range[1]
+        )
+    count_all = count_query.scalar()
     choice_counts = {}
     for choice in all_choices.keys():
-        count_query = db.query(func.count(Pacjent.ID_pacjenta)).filter(
-            variable_column.contains([choice])
-        )
-        if date_range:
-            count_query = count_query.filter(
-                Pacjent.Data_zgloszenia > date_range[0],
-                Pacjent.Data_zgloszenia <= date_range[1]
-            )
-        count = count_query.scalar()
+        count = count_query.filter(variable_column.contains([choice])).scalar()
         choice_counts[choice] = count
-    return choice_counts
+    return {
+        "choices": choice_counts,
+        "total": count_all
+    }
+
+def OLD_get_korzystanie_z_pomocy_bool_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[bool, int]:
+    counts_query = db.query(func.count(Pacjent.ID_pacjenta))
+    if date_range:
+        counts_query = counts_query.filter(
+            Pacjent.Data_zgloszenia > date_range[0],
+            Pacjent.Data_zgloszenia <= date_range[1]
+        )
+    counts_all = counts_query.scalar()
+    counts_query = counts_query.filter(Pacjent.Korzystanie_z_pomocy == '["nie korzysta"]')
+    counts_nie_korzysta = counts_query.scalar()
+    return {"korzysta": counts_all - counts_nie_korzysta, "nie korzysta": counts_nie_korzysta}
+
+def OLD_get_zaproponowane_wsparcie_indywidualne_bool_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
+    counts_query = db.query(func.count(Pacjent.ID_pacjenta))
+    if date_range:
+        counts_query = counts_query.filter(
+            Pacjent.Data_zgloszenia > date_range[0],
+            Pacjent.Data_zgloszenia <= date_range[1]
+        )
+    counts_all = counts_query.scalar()
+    counts_offered = counts_query.filter(
+        Pacjent.Zaproponowane_wsparcie.op('?|')(cast(report_variables_lists.zaproponowane_wsparcie_indywidualne_options, ARRAY(String)))
+        ).scalar()
+    return {"zaproponowane": counts_offered, "nie zaproponowane": counts_all - counts_offered}
+
+def get_multiple_choice_variable_as_bool_counts(db: Session, 
+                                                variable_name: str, 
+                                                list_of_options: List[str],
+                                                date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
+    if not hasattr(Pacjent, variable_name):
+        raise ValueError(f"Invalid variable name: {variable_name}")
+    variable_column = getattr(Pacjent, variable_name) 
+    # counts_query = db.query(func.count(Pacjent.ID_pacjenta))
+    counts_query = db.query(func.count(variable_column)) # exclude nulls
+    if date_range:
+        counts_query = counts_query.filter(
+            Pacjent.Data_zgloszenia > date_range[0],
+            Pacjent.Data_zgloszenia <= date_range[1]
+        )
+    counts_all = counts_query.scalar()
+    counts_selected = counts_query.filter(
+        variable_column.op('?|')(cast(list_of_options, ARRAY(String)))
+    ).scalar()
+    return {True: counts_selected, False: counts_all - counts_selected}
+
+def get_postepowanie_as_bool_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
+    # counts_query = db.query(func.count(Pacjent.ID_pacjenta))
+    counts_query = db.query(func.count(Pacjent.Postepowanie_cywilne)) # zakładam, że nulle są we wszystkich trzech zmiennych w tych samych rekordach
+    if date_range:
+        counts_query = counts_query.filter(
+            Pacjent.Data_zgloszenia > date_range[0],
+            Pacjent.Data_zgloszenia <= date_range[1]
+        )
+    counts_all = counts_query.scalar()
+    counts_true = counts_query.filter(
+        (Pacjent.Postepowanie_cywilne == True) |
+        (Pacjent.Postepowanie_karne == True) |
+        (Pacjent.Postepowanie_rodzinne == True)
+    ).scalar()
+    return {True: counts_true, False: counts_all - counts_true}
+
+def get_wizyty_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    wizyty_counts_query = db.query(
+        func.count(WizytaIndywidualna.ID_wizyty), 
+        WizytaIndywidualna.Typ_wizyty.label('typ_wizyty')
+        )
+    if date_range:
+        wizyty_counts_query = wizyty_counts_query.filter(
+            WizytaIndywidualna.Data_wizyty > date_range[0], 
+            WizytaIndywidualna.Data_wizyty <= date_range[1]
+            )
+    wizyty_counts = wizyty_counts_query.group_by('typ_wizyty').all()
+    return {typ_wizyty: count for typ_wizyty, count in wizyty_counts}
+
+def get_pacjent_counts_by_wizyty_number(db: Session, 
+                                        visit_type: Optional[str] = None,
+                                        date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    subquery_stmt = db.query(
+        WizytaIndywidualna.ID_pacjenta,
+        func.count(WizytaIndywidualna.ID_wizyty).label('wizyty_count')
+    )
+    if date_range:
+        subquery_stmt = subquery_stmt.filter(
+            WizytaIndywidualna.Data_wizyty > date_range[0],
+            WizytaIndywidualna.Data_wizyty <= date_range[1]
+        )
+    if visit_type:
+        subquery_stmt = subquery_stmt.filter(WizytaIndywidualna.Typ_wizyty == visit_type)
+    subquery = subquery_stmt.group_by(WizytaIndywidualna.ID_pacjenta).subquery() # tutaj dostajemy liczbę wizyt na pacjenta
+    counts = db.query(
+        subquery.c.wizyty_count,
+        func.count(subquery.c.ID_pacjenta).label('pacjent_count') # sumy pacjentów - przygotowane do grupowania
+    ).group_by(subquery.c.wizyty_count).all() # grupujemy po liczbie wizyt; wynik to lista tupli
+
+    result = {label: 0 for label, _ in report_variables_lists.WIZYTY_RANGES}
+    for wizyty_count, pacjent_count in counts:
+        for label, limit in report_variables_lists.WIZYTY_RANGES:
+            if wizyty_count <= limit:
+                result[label] += pacjent_count
+                break
+    # result = {wizyty_count: pacjent_count for wizyty_count, pacjent_count in counts}
+    return {
+        "total_pacjenci": sum(result.values()),
+        "counts_by_wizyty_number": result
+    }
+# TODO: zapytać mamę o godziny wizyt indywidualnych!!! po pierwsze czy dany typ wizyty ma zawsze mieć
+# ten sam czas trwania, czy to się może zmieniać, i po drugie czy ten raport godzinowy jest potrzebny

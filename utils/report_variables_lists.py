@@ -35,3 +35,50 @@ text_fields = [
     "Zaproponowane_wsparcie_inne",
     "Zrodlo_informacji_inne"
 ]
+
+zaproponowane_wsparcie_indywidualne_options = [
+        "działania informacyjno-konsultacyjne",
+        "konsultacje prawne",
+        "konsultacje pedagogiczne",
+        "konsultacje psychologiczne",
+        "pomoc psychologiczna",
+        "inne - konsylium psycholog/prawnik",
+        "inne - pomoc 'adwokata socjalnego'",
+        "inne - konsultacje do grupy wsparcia",
+        "inne - konsultacje do grupy rozwojowej"
+]
+
+zaproponowane_wsparcie_grupowe_options = [
+        "grupa wsparcia",
+        "warsztat, trening",
+        "inne - grupa o charakterze rozwojowym."
+]
+
+korzystanie_z_pomocy_options = [
+        "ośrodek pomocy społecznej",
+        "poradnia psych-pedagogiczna",
+        "poradnia rodzinna",
+        "poradnia odwykowa/DZRPA",
+        "placówka ochrony zdrowia",
+        "organizacja pozarządowa",
+        "w ramach tej samej placówki",
+        "inne - jakie?"
+]
+
+typ_wizyty_options = [
+        "specjalista ds. przeciwdziałania przemocy",
+        "adwokat socjalny",
+        "psycholog - konsultacja diagnostyczna",
+        "psycholog - konsultacja rodzicielska",
+        "prawnik - konsultacja / porada prawna",
+        "psycholog/terapeuta - wsparcie",
+        "konsultacje do grupy wsparcia i do grupy rozwojowej",
+        'indywidualne konsultacje w zespole psycholog-prawnik',
+        'indywidualne konsultacje do grupy trening antystresowy 2020'
+]
+
+WIZYTY_RANGES = [
+        ("1-3", 3),
+        ("4-20", 20),
+        ("21+", float('inf'))
+    ]
