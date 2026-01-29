@@ -264,8 +264,23 @@ def get_uczestnicy_grupy_counts_by_completion(db: Session,
 
     return dict(nested_result)
 
-def get_uczestnicy_grupy_counts_by_attendance(db: Session,
+def get_spotkania_grupowe_counts(db: Session,
                                 date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    spotkania_counts_query = db.query(
+        Grupa.ID_grupy.label('grupa_id'),
+        func.count(SpotkanieGrupowe.ID_spotkania).label('spotkania_count')
+    ).join(Grupa).group_by(Grupa.ID_grupy)
+    if date_range:
+        spotkania_counts_query = spotkania_counts_query.filter(
+            Grupa.Data_rozpoczecia > date_range[0],
+            Grupa.Data_rozpoczecia <= date_range[1]
+        )
+    spotkania_counts = spotkania_counts_query.all()
+    return {id_grupy: count for id_grupy, count in spotkania_counts}
+
+
+def get_uczestnicy_grupy_counts_by_attendance(db: Session,
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[str, Any]:
     subquery = db.query(
         UczestnikGrupy.ID_uczestnika_grupy.label('uczestnik_id'),
         Grupa.Nazwa_grupy.label('grupa_name'),
@@ -281,6 +296,7 @@ def get_uczestnicy_grupy_counts_by_attendance(db: Session,
             Grupa.Data_rozpoczecia > date_range[0],
             Grupa.Data_rozpoczecia <= date_range[1]
         )
+
     subquery = subquery.group_by(
         UczestnikGrupy.ID_uczestnika_grupy, 
         Grupa.Nazwa_grupy,
@@ -290,15 +306,34 @@ def get_uczestnicy_grupy_counts_by_attendance(db: Session,
         subquery.c.grupa_name,
         subquery.c.grupa_id,
         subquery.c.meetings_count,
-        func.count(subquery.c.uczestnik_id)
+        func.count(subquery.c.uczestnik_id).label('uczestnicy_count')
     ).group_by(
         subquery.c.grupa_name,
         subquery.c.grupa_id,
         subquery.c.meetings_count
     ).order_by(
         subquery.c.grupa_name
-    ).all()
-    # print(str(query))
+    ).all() # otrzymujemy liczbę uczestników dla każdej liczby spotkań w każdej grupie
+
+    meetings_count_by_group_dict = get_spotkania_grupowe_counts(db, date_range) # group_id: count
+
+    nested_result = defaultdict(lambda: {
+        "Total_uczestnicy": 0,
+        "Total_meetings": 0,
+        "Attendance_stats": {label: 0 for label in report_variables_lists.GROUP_ATTENDANCE_RANGES.keys()}
+        })
     for row in results:
-        print(row)
-    return {}
+        grupa_key = f"{row.grupa_name} ({row.grupa_id})"
+        nested_result[grupa_key]["Total_uczestnicy"] += row.uczestnicy_count
+        nested_result[grupa_key]["Total_meetings"] = meetings_count_by_group_dict.get(row.grupa_id, 0)
+        if nested_result[grupa_key]["Total_meetings"] == 0:
+            continue  # avoid division by zero
+        for label, limit in report_variables_lists.GROUP_ATTENDANCE_RANGES.items():
+            if (row.meetings_count / nested_result[grupa_key]["Total_meetings"]) <= limit:
+                nested_result[grupa_key]["Attendance_stats"][label] += row.uczestnicy_count
+                break
+        
+    # print(str(query))
+    # for row in results:
+    #     print(row)
+    return dict(nested_result)
