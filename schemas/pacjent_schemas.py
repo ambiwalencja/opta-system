@@ -189,7 +189,7 @@ class PacjentDisplay(BaseModel):
     data_zgloszenia: date = Field(..., alias="Data_zgloszenia")
     data_ostatniej_wizyty: Optional[date] = Field(None, alias="Data_ostatniej_wizyty")
     email: Optional[str] = Field(None, alias="Email")
-    telefon: str = Field(..., alias="Telefon")
+    telefon: Optional[str] = Field(None, alias="Telefon")
     dzielnica: str = Field(..., alias="Dzielnica")
     ulica: Optional[str] = Field(None, alias="Ulica")
     nr_domu: Optional[str] = Field(None, alias="Nr_domu")

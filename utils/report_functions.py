@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from collections import defaultdict
 
 
-from db_models.client_data import Grupa, Pacjent, UczestnikGrupy, WizytaIndywidualna
+from db_models.client_data import Grupa, Pacjent, SpotkanieGrupowe, UczestnikGrupy, WizytaIndywidualna, obecni_uczestnicy_spotkania
 from db_models.config import PossibleValues
 from utils import report_variables_lists
 
@@ -244,7 +244,7 @@ def get_uczestnicy_grupy_counts(db: Session,
     uczestnicy_counts = uczestnicy_counts_query.all()
     return {f"{nazwa_grupy} ({id_grupy})": count for id_grupy, nazwa_grupy, count in uczestnicy_counts}
 
-def get_completed_uczestnicy_grupy_counts(db: Session, 
+def get_uczestnicy_grupy_counts_by_completion(db: Session, 
                                 date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
     uczestnicy_counts_query = db.query(
         Grupa.Nazwa_grupy.label('nazwa_grupy'),
@@ -263,3 +263,42 @@ def get_completed_uczestnicy_grupy_counts(db: Session,
         nested_result[row.nazwa_grupy]["Total"] += row.uczestnicy_count
 
     return dict(nested_result)
+
+def get_uczestnicy_grupy_counts_by_attendance(db: Session,
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    subquery = db.query(
+        UczestnikGrupy.ID_uczestnika_grupy.label('uczestnik_id'),
+        Grupa.Nazwa_grupy.label('grupa_name'),
+        UczestnikGrupy.ID_grupy.label('grupa_id'),
+        func.count(obecni_uczestnicy_spotkania.c.ID_spotkania).label('meetings_count')
+    ).select_from(UczestnikGrupy
+    ).join(Grupa
+    ).outerjoin(obecni_uczestnicy_spotkania, UczestnikGrupy.ID_uczestnika_grupy == obecni_uczestnicy_spotkania.c.ID_uczestnika_grupy
+    ).outerjoin(SpotkanieGrupowe, obecni_uczestnicy_spotkania.c.ID_spotkania == SpotkanieGrupowe.ID_spotkania)
+
+    if date_range:
+        subquery = subquery.filter(
+            Grupa.Data_rozpoczecia > date_range[0],
+            Grupa.Data_rozpoczecia <= date_range[1]
+        )
+    subquery = subquery.group_by(
+        UczestnikGrupy.ID_uczestnika_grupy, 
+        Grupa.Nazwa_grupy,
+        UczestnikGrupy.ID_grupy
+    ).subquery() # otrzymujemy liczbę spotkań na każdego uczestnika 
+    results = db.query(
+        subquery.c.grupa_name,
+        subquery.c.grupa_id,
+        subquery.c.meetings_count,
+        func.count(subquery.c.uczestnik_id)
+    ).group_by(
+        subquery.c.grupa_name,
+        subquery.c.grupa_id,
+        subquery.c.meetings_count
+    ).order_by(
+        subquery.c.grupa_name
+    ).all()
+    # print(str(query))
+    for row in results:
+        print(row)
+    return {}

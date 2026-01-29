@@ -250,4 +250,14 @@ def get_uczestnicy_grupy_group_completion_counts(db: Session = Depends(get_db),
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
     date_range = (start, end) if start and end else None
-    return report_functions.get_completed_uczestnicy_grupy_counts(db, date_range)
+    return report_functions.get_uczestnicy_grupy_counts_by_completion(db, date_range)
+
+@router.get('/uczestnicy_grupy_attendance/')
+def get_uczestnicy_grupy_attendance_counts(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_uczestnicy_grupy_counts_by_attendance(db, date_range)

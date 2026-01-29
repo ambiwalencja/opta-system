@@ -328,7 +328,6 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
     # FILTERING
     for param_name, value_str in filter_params.items():
         column_to_filter: Optional[Column] = FILTERING_FIELDS.get(param_name)
-        
         if column_to_filter:
             if isinstance(column_to_filter.type, Boolean):
                 if value_str.lower() in ('true', '1'):
@@ -389,5 +388,4 @@ def get_all_pacjenci(
     query = search_pacjenci(query, search_term)
     query = filter_pacjenci(query, filters)
     query = sort_pacjenci(query, sort_by, sort_direction)
-
     return paginate(query)
