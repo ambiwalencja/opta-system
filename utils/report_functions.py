@@ -1,16 +1,19 @@
 from fastapi import HTTPException, status
 from datetime import datetime, date
-from sqlalchemy import Column, Numeric, func, distinct, Date, Boolean, Integer, desc, cast, String
+from sqlalchemy import Column, Numeric, func, distinct, Date, Boolean, Integer, desc, cast, String, literal
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.engine.row import Row
 # from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
-# from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional, Dict, Any, List, Tuple
+from collections import defaultdict
 
-from db_models.client_data import Pacjent, WizytaIndywidualna
+
+from db_models.client_data import Grupa, Pacjent, SpotkanieGrupowe, UczestnikGrupy, WizytaIndywidualna, obecni_uczestnicy_spotkania
 from db_models.config import PossibleValues
 from utils import report_variables_lists
+
+# TODO: zastanowić się, czy tych powtarzających się fragmentów nie da się ładniej ująć w jednej funkcji, innych funkcjach pomocniczych itp.
 
 def get_pacjent_counts_by_year(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
     pacjent_counts_query = db.query(
@@ -38,15 +41,8 @@ def get_average_age_by_year(db: Session, date_range: Optional[Tuple[date, date]]
     return {year: average_age for year, average_age in average_age_data}
 
 def get_age_group_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
-    age_groups = {
-        '18-25': (18, 25),
-        '26-35': (26, 35),
-        '36-45': (36, 45),
-        '46-55': (46, 55),
-        '56+': (56, 150)
-    }
     age_group_counts = {}
-    for group_name, (age_min, age_max) in age_groups.items():
+    for group_name, (age_min, age_max) in report_variables_lists.AGE_GROUPS.items():
         query = db.query(func.count(Pacjent.ID_pacjenta))
         if date_range:
             query = query.filter(
@@ -102,30 +98,6 @@ def get_multiple_choice_form_variable_counts(db: Session, variable_name: str, da
         "total": count_all
     }
 
-def OLD_get_korzystanie_z_pomocy_bool_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[bool, int]:
-    counts_query = db.query(func.count(Pacjent.ID_pacjenta))
-    if date_range:
-        counts_query = counts_query.filter(
-            Pacjent.Data_zgloszenia > date_range[0],
-            Pacjent.Data_zgloszenia <= date_range[1]
-        )
-    counts_all = counts_query.scalar()
-    counts_query = counts_query.filter(Pacjent.Korzystanie_z_pomocy == '["nie korzysta"]')
-    counts_nie_korzysta = counts_query.scalar()
-    return {"korzysta": counts_all - counts_nie_korzysta, "nie korzysta": counts_nie_korzysta}
-
-def OLD_get_zaproponowane_wsparcie_indywidualne_bool_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
-    counts_query = db.query(func.count(Pacjent.ID_pacjenta))
-    if date_range:
-        counts_query = counts_query.filter(
-            Pacjent.Data_zgloszenia > date_range[0],
-            Pacjent.Data_zgloszenia <= date_range[1]
-        )
-    counts_all = counts_query.scalar()
-    counts_offered = counts_query.filter(
-        Pacjent.Zaproponowane_wsparcie.op('?|')(cast(report_variables_lists.zaproponowane_wsparcie_indywidualne_options, ARRAY(String)))
-        ).scalar()
-    return {"zaproponowane": counts_offered, "nie zaproponowane": counts_all - counts_offered}
 
 def get_multiple_choice_variable_as_bool_counts(db: Session, 
                                                 variable_name: str, 
@@ -134,8 +106,7 @@ def get_multiple_choice_variable_as_bool_counts(db: Session,
     if not hasattr(Pacjent, variable_name):
         raise ValueError(f"Invalid variable name: {variable_name}")
     variable_column = getattr(Pacjent, variable_name) 
-    # counts_query = db.query(func.count(Pacjent.ID_pacjenta))
-    counts_query = db.query(func.count(variable_column)) # exclude nulls
+    counts_query = db.query(func.count(variable_column)) # exclude nulls by selecting the column I will actually count
     if date_range:
         counts_query = counts_query.filter(
             Pacjent.Data_zgloszenia > date_range[0],
@@ -148,7 +119,6 @@ def get_multiple_choice_variable_as_bool_counts(db: Session,
     return {True: counts_selected, False: counts_all - counts_selected}
 
 def get_postepowanie_as_bool_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
-    # counts_query = db.query(func.count(Pacjent.ID_pacjenta))
     counts_query = db.query(func.count(Pacjent.Postepowanie_cywilne)) # zakładam, że nulle są we wszystkich trzech zmiennych w tych samych rekordach
     if date_range:
         counts_query = counts_query.filter(
@@ -176,12 +146,13 @@ def get_wizyty_counts(db: Session, date_range: Optional[Tuple[date, date]] = Non
     wizyty_counts = wizyty_counts_query.group_by('typ_wizyty').all()
     return {typ_wizyty: count for typ_wizyty, count in wizyty_counts}
 
-def get_pacjent_counts_by_wizyty_number(db: Session, 
-                                        visit_type: Optional[str] = None,
-                                        date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+def pacjent_stats_query(db: Session, 
+                        column: Column,
+                        visit_type: Optional[str] = None,
+                        date_range: Optional[Tuple[date, date]] = None)-> List[Row]:
     subquery_stmt = db.query(
         WizytaIndywidualna.ID_pacjenta,
-        func.count(WizytaIndywidualna.ID_wizyty).label('wizyty_count')
+        func.sum(column).label('wizyty_count')
     )
     if date_range:
         subquery_stmt = subquery_stmt.filter(
@@ -195,6 +166,13 @@ def get_pacjent_counts_by_wizyty_number(db: Session,
         subquery.c.wizyty_count,
         func.count(subquery.c.ID_pacjenta).label('pacjent_count') # sumy pacjentów - przygotowane do grupowania
     ).group_by(subquery.c.wizyty_count).all() # grupujemy po liczbie wizyt; wynik to lista tupli
+    return counts
+    
+def get_pacjent_counts_by_wizyty_number(db: Session, 
+                                        visit_type: Optional[str] = None,
+                                        date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+
+    counts = pacjent_stats_query(db, column=literal(1), visit_type=visit_type, date_range=date_range)
 
     result = {label: 0 for label, _ in report_variables_lists.WIZYTY_RANGES}
     for wizyty_count, pacjent_count in counts:
@@ -202,10 +180,160 @@ def get_pacjent_counts_by_wizyty_number(db: Session,
             if wizyty_count <= limit:
                 result[label] += pacjent_count
                 break
-    # result = {wizyty_count: pacjent_count for wizyty_count, pacjent_count in counts}
     return {
         "total_pacjenci": sum(result.values()),
         "counts_by_wizyty_number": result
     }
-# TODO: zapytać mamę o godziny wizyt indywidualnych!!! po pierwsze czy dany typ wizyty ma zawsze mieć
-# ten sam czas trwania, czy to się może zmieniać, i po drugie czy ten raport godzinowy jest potrzebny
+
+def get_pacjent_counts_by_hours_fixed(db: Session, 
+                                visit_type: Optional[str] = None,
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    '''Counts pacjents by total hours of visits, assuming fixed duration per visit type, given in a dictionary.'''
+    counts = pacjent_stats_query(db, column=literal(1), visit_type=visit_type, date_range=date_range)
+
+    result = {label: 0 for label, _ in report_variables_lists.HOURS_RANGES}
+    total_hours = 0
+    
+    duration = report_variables_lists.typ_wizyty_options.get(visit_type, 1)
+    for wizyty_count, pacjent_count in counts:
+        hours_count = wizyty_count * duration
+        total_hours += hours_count * pacjent_count
+        for label, limit in report_variables_lists.HOURS_RANGES:
+            if hours_count <= limit:
+                result[label] += pacjent_count
+                break
+    return {
+        "total_pacjenci": sum(result.values()),
+        "total_hours": total_hours,
+        "counts_by_hours": result
+    }
+
+def get_pacjent_counts_by_hours_dbwise(db: Session, 
+                                visit_type: Optional[str] = None,
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    '''Counts pacjents by total hours of visits, using the actual hours recorded in the database.'''
+    counts = pacjent_stats_query(db, WizytaIndywidualna.Liczba_godzin, visit_type, date_range)
+    
+    result = {label: 0 for label, _ in report_variables_lists.HOURS_RANGES}
+    total_hours = 0
+    for hours_count, pacjent_count in counts:
+        total_hours += hours_count * pacjent_count
+        for label, limit in report_variables_lists.HOURS_RANGES:
+            if hours_count <= limit:
+                result[label] += pacjent_count
+                break
+    return {
+        "total_pacjenci": sum(result.values()),
+        "total_hours": total_hours,
+        "counts_by_hours": result
+    }
+
+
+def get_uczestnicy_grupy_counts(db: Session, 
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    uczestnicy_counts_query = db.query(
+        UczestnikGrupy.ID_grupy.label('id_grupy'),
+        Grupa.Nazwa_grupy.label('nazwa_grupy'),
+        func.count(UczestnikGrupy.ID_uczestnika_grupy).label('uczestnicy_count'),
+    ).join(Grupa).group_by('id_grupy', 'nazwa_grupy')
+    if date_range:
+        uczestnicy_counts_query = uczestnicy_counts_query.filter(
+            Grupa.Data_rozpoczecia > date_range[0],
+            Grupa.Data_rozpoczecia <= date_range[1]
+        )
+    uczestnicy_counts = uczestnicy_counts_query.all()
+    return {f"{nazwa_grupy} ({id_grupy})": count for id_grupy, nazwa_grupy, count in uczestnicy_counts}
+
+def get_uczestnicy_grupy_counts_by_completion(db: Session, 
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
+    uczestnicy_counts_query = db.query(
+        Grupa.Nazwa_grupy.label('nazwa_grupy'),
+        UczestnikGrupy.Ukonczenie.label('ukonczenie'),
+        func.count(UczestnikGrupy.ID_uczestnika_grupy).label('uczestnicy_count')
+    ).join(Grupa).group_by(Grupa.Nazwa_grupy, UczestnikGrupy.Ukonczenie)
+    if date_range:
+        uczestnicy_counts_query = uczestnicy_counts_query.filter(
+            Grupa.Data_rozpoczecia > date_range[0],
+            Grupa.Data_rozpoczecia <= date_range[1]
+        )
+    uczestnicy_counts = uczestnicy_counts_query.all()
+    nested_result = defaultdict(lambda: {"Total": 0})
+    for row in uczestnicy_counts:
+        nested_result[row.nazwa_grupy][row.ukonczenie] = row.uczestnicy_count
+        nested_result[row.nazwa_grupy]["Total"] += row.uczestnicy_count
+
+    return dict(nested_result)
+
+def get_spotkania_grupowe_counts(db: Session,
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
+    spotkania_counts_query = db.query(
+        Grupa.ID_grupy.label('grupa_id'),
+        func.count(SpotkanieGrupowe.ID_spotkania).label('spotkania_count')
+    ).join(Grupa).group_by(Grupa.ID_grupy)
+    if date_range:
+        spotkania_counts_query = spotkania_counts_query.filter(
+            Grupa.Data_rozpoczecia > date_range[0],
+            Grupa.Data_rozpoczecia <= date_range[1]
+        )
+    spotkania_counts = spotkania_counts_query.all()
+    return {id_grupy: count for id_grupy, count in spotkania_counts}
+
+
+def get_uczestnicy_grupy_counts_by_attendance(db: Session,
+                                date_range: Optional[Tuple[date, date]] = None) -> Dict[str, Any]:
+    subquery = db.query(
+        UczestnikGrupy.ID_uczestnika_grupy.label('uczestnik_id'),
+        Grupa.Nazwa_grupy.label('grupa_name'),
+        UczestnikGrupy.ID_grupy.label('grupa_id'),
+        func.count(obecni_uczestnicy_spotkania.c.ID_spotkania).label('meetings_count')
+    ).select_from(UczestnikGrupy
+    ).join(Grupa
+    ).outerjoin(obecni_uczestnicy_spotkania, UczestnikGrupy.ID_uczestnika_grupy == obecni_uczestnicy_spotkania.c.ID_uczestnika_grupy
+    ).outerjoin(SpotkanieGrupowe, obecni_uczestnicy_spotkania.c.ID_spotkania == SpotkanieGrupowe.ID_spotkania)
+
+    if date_range:
+        subquery = subquery.filter(
+            Grupa.Data_rozpoczecia > date_range[0],
+            Grupa.Data_rozpoczecia <= date_range[1]
+        )
+
+    subquery = subquery.group_by(
+        UczestnikGrupy.ID_uczestnika_grupy, 
+        Grupa.Nazwa_grupy,
+        UczestnikGrupy.ID_grupy
+    ).subquery() # otrzymujemy liczbę spotkań na każdego uczestnika 
+    results = db.query(
+        subquery.c.grupa_name,
+        subquery.c.grupa_id,
+        subquery.c.meetings_count,
+        func.count(subquery.c.uczestnik_id).label('uczestnicy_count')
+    ).group_by(
+        subquery.c.grupa_name,
+        subquery.c.grupa_id,
+        subquery.c.meetings_count
+    ).order_by(
+        subquery.c.grupa_name
+    ).all() # otrzymujemy liczbę uczestników dla każdej liczby spotkań w każdej grupie
+
+    meetings_count_by_group_dict = get_spotkania_grupowe_counts(db, date_range) # group_id: count
+
+    nested_result = defaultdict(lambda: {
+        "Total_uczestnicy": 0,
+        "Total_meetings": 0,
+        "Attendance_stats": {label: 0 for label in report_variables_lists.GROUP_ATTENDANCE_RANGES.keys()}
+        })
+    for row in results:
+        grupa_key = f"{row.grupa_name} ({row.grupa_id})"
+        nested_result[grupa_key]["Total_uczestnicy"] += row.uczestnicy_count
+        nested_result[grupa_key]["Total_meetings"] = meetings_count_by_group_dict.get(row.grupa_id, 0)
+        if nested_result[grupa_key]["Total_meetings"] == 0:
+            continue  # avoid division by zero
+        for label, limit in report_variables_lists.GROUP_ATTENDANCE_RANGES.items():
+            if (row.meetings_count / nested_result[grupa_key]["Total_meetings"]) <= limit:
+                nested_result[grupa_key]["Attendance_stats"][label] += row.uczestnicy_count
+                break
+        
+    # print(str(query))
+    # for row in results:
+    #     print(row)
+    return dict(nested_result)

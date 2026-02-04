@@ -184,10 +184,80 @@ def get_pacjenci_by_wizyty_by_type(db: Session = Depends(get_db),
     if current_user.Role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
     date_range = (start, end) if start and end else None
-    visit_type_list = report_variables_lists.typ_wizyty_options
+    visit_type_list = report_variables_lists.typ_wizyty_options.keys()
     result = {}
-    # result["visit count"] = "number of patients"
     for visit_type in visit_type_list:
         counts = report_functions.get_pacjent_counts_by_wizyty_number(db, visit_type, date_range)
         result[visit_type] = counts
     return result
+
+@router.get('/pacjenci_by_hours/')
+def get_pacjenci_by_hours_fixed(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       visit_type: str = FastapiQuery(..., description="Visit type"),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    '''Hours counted using fixed duration per visit type, given in a dictionary.'''
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_pacjent_counts_by_hours_fixed(db, visit_type, date_range)
+
+@router.get('/pacjenci_by_hours_2/')
+def get_pacjenci_by_hours_dbwise(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       visit_type: Optional[str] = FastapiQuery(None, description="Visit type"),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    '''Hours counted using actual hours recorded in the database.'''
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_pacjent_counts_by_hours_dbwise(db, visit_type, date_range)
+
+@router.get('/pacjenci_by_hours_all/')
+def get_pacjenci_by_hours_all_dbwise(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    '''Hours counted using actual hours recorded in the database.'''
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    visit_type_list = report_variables_lists.typ_wizyty_options.keys()
+    result = {}
+    for visit_type in visit_type_list:
+        counts = report_functions.get_pacjent_counts_by_hours_dbwise(db, visit_type, date_range)
+        result[visit_type] = counts
+    return result
+
+@router.get('/uczestnicy_grupy_counts/')
+def get_uczestnicy_grupy_counts(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_uczestnicy_grupy_counts(db, date_range)
+
+@router.get('/uczestnicy_grupy_completion/')
+def get_uczestnicy_grupy_group_completion_counts(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    '''True = ukończone, False = nieukończone, none = brak danych albo grupa trwa'''
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_uczestnicy_grupy_counts_by_completion(db, date_range)
+
+@router.get('/uczestnicy_grupy_attendance/')
+def get_uczestnicy_grupy_attendance_counts(db: Session = Depends(get_db), 
+                       current_user: UserSignIn = Depends(get_user_from_token("access_token")),
+                       start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
+                        end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    if current_user.Role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    date_range = (start, end) if start and end else None
+    return report_functions.get_uczestnicy_grupy_counts_by_attendance(db, date_range)

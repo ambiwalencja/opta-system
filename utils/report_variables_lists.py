@@ -65,20 +65,42 @@ korzystanie_z_pomocy_options = [
         "inne - jakie?"
 ]
 
-typ_wizyty_options = [
-        "specjalista ds. przeciwdziałania przemocy",
-        "adwokat socjalny",
-        "psycholog - konsultacja diagnostyczna",
-        "psycholog - konsultacja rodzicielska",
-        "prawnik - konsultacja / porada prawna",
-        "psycholog/terapeuta - wsparcie",
-        "konsultacje do grupy wsparcia i do grupy rozwojowej",
-        'indywidualne konsultacje w zespole psycholog-prawnik',
-        'indywidualne konsultacje do grupy trening antystresowy 2020'
-]
+typ_wizyty_options = {
+        "specjalista ds. przeciwdziałania przemocy": 1,
+        "adwokat socjalny": 1,
+        "psycholog - konsultacja diagnostyczna": 1,
+        "psycholog - konsultacja rodzicielska": 1,
+        "prawnik - konsultacja / porada prawna": 1,
+        "psycholog/terapeuta - wsparcie": 1,
+        "konsultacje do grupy wsparcia i do grupy rozwojowej": 1,
+        'indywidualne konsultacje w zespole psycholog-prawnik': 2,
+        'indywidualne konsultacje do grupy trening antystresowy 2020': 1
+}
 
 WIZYTY_RANGES = [
         ("1-3", 3),
         ("4-20", 20),
         ("21+", float('inf'))
     ]
+
+HOURS_RANGES = [
+        ("1-3", 3),
+        ("4-10", 10),
+        ("11-20", 20),
+        ("21+", float('inf'))
+    ]
+
+AGE_GROUPS = {
+        '18-25': (18, 25),
+        '26-35': (26, 35),
+        '36-45': (36, 45),
+        '46-55': (46, 55),
+        '56+': (56, 150)
+    }
+
+GROUP_ATTENDANCE_RANGES = {
+        "0-30%": 0.3,
+        "31-60%": 0.6,
+        "61-90%": 0.9,
+        "91%+": 1.0
+    }
