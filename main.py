@@ -1,10 +1,13 @@
+# gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 127.0.0.1:8000
+# gunicorn -c gunicorn_config.py main:app
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import add_pagination
-
 from dotenv import load_dotenv
 import os
+import logging
+
 from db import db_connect
 from db_models import user_data, client_data, config
 from routers import (
@@ -52,6 +55,13 @@ old_db_enabled = os.getenv("OLD_DB_MODE", "false").lower() == "true"
 if old_db_enabled:
     initialize_old_db()
     app.include_router(old_db_endpoints.router)
+
+# LOGGER
+gunicorn_error_logger = logging.getLogger("gunicorn.error")
+logger = logging.getLogger("my_app_logger")
+logger.handlers = gunicorn_error_logger.handlers
+logger.setLevel(gunicorn_error_logger.level)
+# TOD: next - log to file
 
 @app.get("/", response_class=HTMLResponse)
 def root():

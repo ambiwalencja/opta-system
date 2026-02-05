@@ -338,6 +338,7 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
                     continue 
             elif isinstance(column_to_filter.type, Date):
                 # Check if it's a date range (format: "2023-01-01,2023-12-31")
+                # TODO: zapytać mamę, Julę, czy mogą wybierać konkretną datę, a nie rok
                 if ',' in value_str:
                     try:
                         date_parts = value_str.split(',')
