@@ -58,7 +58,7 @@ data = [
         "od rodziny": "radio",
         "z Internetu": "radio",
         "z instytucji": "radio",
-        "z innej organizacji pozarządowej": "radio",
+        "z innej organizacji pozarządowej": "radio", # TODO: zapytać, czy nie chcemy nazwy tutaj pobierać (czasem też ludzie zaznaczają inne a potem wpisują nazwę NGOsa)
         "z ulotki": "radio",
         "ze spotkania informacyjnego": "radio",
         "z zespołu interdyscyplinarnego/grupy roboczej": "radio",
