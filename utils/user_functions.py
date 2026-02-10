@@ -12,7 +12,7 @@ logger = logging.getLogger("opta_system_logger")
 
 async def create_user(db: Session, request: UserBase):
     try:
-        logger.info(f"Creating new user with username: {request.username}")
+        logger.info("Creating new user with username: %s", request.username)
         new_user = User(
             Full_name = request.full_name,
             Username = request.username,
@@ -27,25 +27,25 @@ async def create_user(db: Session, request: UserBase):
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        logger.info(f"User {request.username} created successfully with ID: {new_user.ID_uzytkownika}")
+        logger.info("User %s created successfully with ID: %s", request.username, new_user.ID_uzytkownika)
         return new_user
     except Exception as e:
-        logger.error(f"Error creating user {request.username}: {str(e)}", exc_info=True)
+        logger.error("Error creating user %s: %s", request.username, str(e), exc_info=True)
         raise
 
 def get_user_by_username(db: Session, username: str):
     try:
         user = db.query(User).filter(User.Username == username).first()
         if not user:
-            logger.warning(f"User lookup failed: username '{username}' not found")
+            logger.warning("User lookup failed: username '%s' not found", username)
             raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f'User with username {username} not found')
-        logger.info(f"User {username} retrieved successfully")
+        logger.info("User %s retrieved successfully", username)
         return user
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error retrieving user {username}: {str(e)}", exc_info=True)
+        logger.error("Error retrieving user %s: %s", username, str(e), exc_info=True)
         raise
 
 def update_last_login(db: Session, user: User):
@@ -54,9 +54,9 @@ def update_last_login(db: Session, user: User):
         db.add(user)
         db.commit()
         db.refresh(user)
-        logger.info(f"Last login updated for user {user.Username}")
+        logger.info("Last login updated for user %s", user.Username)
     except Exception as e:
-        logger.error(f"Error updating last login for user {user.Username}: {str(e)}", exc_info=True)
+        logger.error("Error updating last login for user %s: %s", user.Username, str(e), exc_info=True)
         raise 
 
 def format_datetime(dt: datetime) -> str:
@@ -78,12 +78,12 @@ def get_recently_active_users(db: Session, limit: int = 10):
             .limit(limit)
             .all()
         )
-        logger.info(f"Retrieved {len(user_list)} recently active users (limit: {limit})")
+        logger.info("Retrieved %d recently active users (limit: %d)", len(user_list), limit)
         for user in user_list:
-            logger.debug(f"User {user.Username}: Last login: {user.Last_login}")
+            logger.debug("User %s: Last login: %s", user.Username, user.Last_login)
         return user_list
     except Exception as e:
-        logger.error(f"Error retrieving recently active users: {str(e)}", exc_info=True)
+        logger.error("Error retrieving recently active users: %s", str(e), exc_info=True)
         raise
 
 # async def validate_user_update_data(

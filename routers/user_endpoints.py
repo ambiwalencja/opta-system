@@ -38,22 +38,22 @@ async def create_user(request: UserCreate, passphrase: str, db: Session = Depend
     try:
         # check passphrase
         if passphrase != os.environ.get('REGISTER_PASSPHRASE'):
-            logger.warning(f"User creation attempt with incorrect passphrase")
+            logger.warning("User creation attempt with incorrect passphrase")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Incorrect passphrase')
         # validate request
         await validate_specialist_types(db, request.specjalista)
         # check if user already exists
         if db.query(User).filter(User.Username == request.username).first():
-            logger.warning(f"User creation attempt for existing username: {request.username}")
+            logger.warning("User creation attempt for existing username: %s", request.username)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                 detail='User already exists')
-        logger.info(f"Creating new user: {request.username}")
+        logger.info("Creating new user: %s", request.username)
         return await user_functions.create_user(db, request)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating user {request.username}: {str(e)}", exc_info=True)
+        logger.error("Error creating user %s: %s", request.username, str(e), exc_info=True)
         raise
 
 @router.post('/login')
@@ -61,7 +61,7 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
     try:
         user = user_functions.get_user_by_username(db, request.username)
         if not Hash.verify(user.Password, request.password):
-            logger.warning(f"Login attempt with incorrect password for user: {request.username}")
+            logger.warning("Login attempt with incorrect password for user: %s", request.username)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Incorrect password')
         
@@ -69,7 +69,7 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
         refresh_token = create_refresh_token(data={"username": user.Username})
         
         user_functions.update_last_login(db, user)
-        logger.info(f"User {user.Username} logged in successfully.")
+        logger.info("User %s logged in successfully.", user.Username)
         return {
             'access_token': access_token,
             "refresh_token": refresh_token,
@@ -82,7 +82,7 @@ def login(request: UserSignIn, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error during login for user {request.username}: {str(e)}", exc_info=True)
+        logger.error("Error during login for user %s: %s", request.username, str(e), exc_info=True)
         raise
 
 @router.post('/login_form') # do testowania, do autoryzacji w docsach
@@ -90,14 +90,14 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     try:
         user = user_functions.get_user_by_username(db, form_data.username)
         if not Hash.verify(user.Password, form_data.password):
-            logger.warning(f"Login form attempt with incorrect password for user: {form_data.username}")
+            logger.warning("Login form attempt with incorrect password for user: %s", form_data.username)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Incorrect password')
         
         access_token = create_access_token(data={'username': user.Username})
         refresh_token = create_refresh_token(data={"username": user.Username})
         
-        logger.info(f"User {user.Username} logged in via form.")
+        logger.info("User %s logged in via form.", user.Username)
         return {
             'full_name': user.Full_name,
             'access_token': access_token,
@@ -107,7 +107,7 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error during login form for user {form_data.username}: {str(e)}", exc_info=True)
+        logger.error("Error during login form for user %s: %s", form_data.username, str(e), exc_info=True)
         raise
 
 @router.post("/refresh")
@@ -120,12 +120,12 @@ async def refresh_token(data: TokenRequest, db: Session = Depends(get_db)):
 
         user = get_user_from_token_raw(refresh_token, "refresh_token", db)
         new_access_token = create_access_token({"username": user.Username})
-        logger.info(f"Access token refreshed for user {user.Username}")
+        logger.info("Access token refreshed for user %s", user.Username)
         return {"access_token": new_access_token}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error refreshing token: {str(e)}", exc_info=True)
+        logger.error("Error refreshing token: %s", str(e), exc_info=True)
         raise
 
 @router.get("/me", response_model=UserDisplay)
@@ -138,32 +138,33 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
     try:
         user = db.query(User).filter(User.Username == request.username).first()
         if not user:
-            logger.warning(f"Password reset attempt for non-existent user: {request.username}")
+            logger.warning("Password reset attempt for non-existent user: %s", request.username)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                 detail=f'User {request.username} does not exist')
         if current_user.Role != 'admin':
-            logger.warning(f"Unauthorized password reset attempt by user: {current_user.Username} for user: {request.username}")
+            logger.warning("Unauthorized password reset attempt by user: %s for user: %s", current_user.Username, request.username)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                 detail=f'You are not an admin')
         user.Password = Hash.bcrypt(request.password)
         db.add(user)
         db.commit()
         db.refresh(user)
-        logger.info(f"Password reset by admin {current_user.Username} for user {request.username}")
+        logger.info("Password reset by admin %s for user %s", current_user.Username, request.username)
         return True
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error resetting password for user {request.username}: {str(e)}", exc_info=True)
+        logger.error("Error resetting password for user %s: %s", request.username, str(e), exc_info=True)
         raise
 
 @router.get('/display')
 def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     try:
         if current_user.Role != 'admin':
-            logger.warning(f"Unauthorized users display attempt by user: {current_user.Username}")
+            logger.warning("Unauthorized users display attempt by user: %s", current_user.Username)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                 detail=f'You are not an admin')
+        logger.info("User %s (admin) displaying user list", current_user.Username)
         data = db.query(User.ID_uzytkownika, 
                         User.Username, 
                         User.Full_name, 
@@ -184,82 +185,82 @@ def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depe
                 'Last login': user_functions.format_datetime(row[6]),
                 'Status': row[7]
             })
-        logger.info(f"User list displayed by admin {current_user.Username} ({len(data)} users)")
+        logger.info("User list displayed by admin %s (%d users)", current_user.Username, len(data))
         return response_data
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error displaying users: {str(e)}", exc_info=True)
+        logger.error("Error displaying users: %s", str(e), exc_info=True)
         raise
 
 @router.delete('/delete')
 def delete_users(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))): 
     try:
         if current_user.Role != 'admin':
-            logger.warning(f"Unauthorized user delete attempt by user: {current_user.Username}")
+            logger.warning("Unauthorized user delete attempt by user: %s", current_user.Username)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                 detail=f'You are not an admin')
         user = db.query(User).filter(User.Username == username).first()
         if not user:
-            logger.warning(f"Delete attempt for non-existent user: {username}")
+            logger.warning("Delete attempt for non-existent user: %s", username)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                 detail=f'User with username {username} does not exist')
         db.delete(user)
         db.commit()
-        logger.info(f"User {username} deleted by admin {current_user.Username}")
+        logger.info("User %s deleted by admin %s", username, current_user.Username)
         return True
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting user {username}: {str(e)}", exc_info=True)
+        logger.error("Error deleting user %s: %s", username, str(e), exc_info=True)
         raise
 
 @router.put('/deactivate')
 def deactivate_user(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     try:
         if current_user.Role != 'admin':
-            logger.warning(f"Unauthorized user deactivate attempt by user: {current_user.Username}")
+            logger.warning("Unauthorized user deactivate attempt by user: %s", current_user.Username)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                 detail=f'You are not an admin')
         user = db.query(User).filter(User.Username == username).first()
         if not user:
-            logger.warning(f"Deactivate attempt for non-existent user: {username}")
+            logger.warning("Deactivate attempt for non-existent user: %s", username)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                 detail=f'User with username {username} does not exist')
         user.Status = 'inactive'
         db.add(user)
         db.commit()
         db.refresh(user)
-        logger.info(f"User {username} deactivated by admin {current_user.Username}")
+        logger.info("User %s deactivated by admin %s", username, current_user.Username)
         return True
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deactivating user {username}: {str(e)}", exc_info=True)
+        logger.error("Error deactivating user %s: %s", username, str(e), exc_info=True)
         raise
 
 @router.put('/activate')
 def activate_user(username: str, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     try:
         if current_user.Role != 'admin':
-            logger.warning(f"Unauthorized user activate attempt by user: {current_user.Username}")
+            logger.warning("Unauthorized user activate attempt by user: %s", current_user.Username)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                 detail=f'You are not an admin')
         user = db.query(User).filter(User.Username == username).first()
         if not user:
-            logger.warning(f"Activate attempt for non-existent user: {username}")
+            logger.warning("Activate attempt for non-existent user: %s", username)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                 detail=f'User with username {username} does not exist')
         user.Status = 'active'
         db.add(user)
         db.commit()
         db.refresh(user)
-        logger.info(f"User {username} activated by admin {current_user.Username}")
+        logger.info("User %s activated by admin %s", username, current_user.Username)
         return True
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error activating user {username}: {str(e)}", exc_info=True)
+        logger.error("Error activating user %s: %s", username, str(e), exc_info=True)
         raise
 
 @router.put("/update", response_model=UserDisplay)
@@ -271,7 +272,7 @@ async def update_user_info(
 ):
     try:
         if current_user.Role != 'admin':
-            logger.warning(f"Unauthorized user update attempt by user: {current_user.Username}")
+            logger.warning("Unauthorized user update attempt by user: %s", current_user.Username)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                 detail=f'You are not an admin')
         
@@ -281,32 +282,32 @@ async def update_user_info(
 
         user = db.query(User).filter(User.Username == username).first()
         if not user:
-            logger.warning(f"Update attempt for non-existent user: {username}")
+            logger.warning("Update attempt for non-existent user: %s", username)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                 detail=f'User with username {username} does not exist')
         
-        logger.info(f"Updating user {username} with new information by admin {current_user.Username}")
+        logger.info("Updating user %s with new information by admin %s", username, current_user.Username)
         if request.full_name:
             user.Full_name = request.full_name
-            logger.debug(f"Updated full_name for user {username}")
+            logger.debug("Updated full_name for user %s", username)
         if request.specjalista:
             user.Specjalista = request.specjalista
-            logger.debug(f"Updated specjalista for user {username}")
+            logger.debug("Updated specjalista for user %s", username)
         if request.role:
             user.Role = request.role
-            logger.debug(f"Updated role for user {username}")
+            logger.debug("Updated role for user %s", username)
         if request.status:
             user.Status = request.status
-            logger.debug(f"Updated status for user {username}")
+            logger.debug("Updated status for user %s", username)
         db.add(user)
         db.commit()
         db.refresh(user)
-        logger.info(f"User {username} updated successfully by admin {current_user.Username}")
+        logger.info("User %s updated successfully by admin %s", username, current_user.Username)
         return user
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating user {username}: {str(e)}", exc_info=True)
+        logger.error("Error updating user %s: %s", username, str(e), exc_info=True)
         raise
 
 @router.get("/valid-values")
@@ -316,17 +317,17 @@ async def get_valid_values(
 ):
     try:
         if current_user.Role != 'admin':
-            logger.warning(f"Unauthorized valid values request by user: {current_user.Username}")
+            logger.warning("Unauthorized valid values request by user: %s", current_user.Username)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='You are not an admin'
             )
+        logger.info("User %s (admin) retrieving valid values", current_user.Username)
         # Get specialist types from possible_values table
         specialist_types = db.query(PossibleValues)\
             .filter(PossibleValues.Variable_name == "Specjalista")\
             .first()
-
-        logger.info(f"Valid values retrieved by admin {current_user.Username}")
+        logger.info("Valid values retrieved by admin %s", current_user.Username)
         return {
             "roles": [r.value for r in RoleEnum],
             "statuses": [s.value for s in StatusEnum],
@@ -335,7 +336,7 @@ async def get_valid_values(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error retrieving valid values: {str(e)}", exc_info=True)
+        logger.error("Error retrieving valid values: %s", str(e), exc_info=True)
         raise
 
 
@@ -345,14 +346,14 @@ async def import_users_from_file( # async to handle file upload using fastapi's 
     db: Session = Depends(get_db)
 ):
     try:
-        logger.info(f"Starting CSV import from file: {file.filename}")
+        logger.info("Starting CSV import from file: %s", file.filename)
         # Read file content into memory
         content = await file.read()
         file_object = BytesIO(content)
         
         # Process the file
         users = import_users_from_csv_simple(file_object)
-        logger.info(f"Parsed {len(users)} users from CSV file")
+        logger.info("Parsed %d users from CSV file", len(users))
         
         # Import users to database
         results = {
@@ -369,11 +370,11 @@ async def import_users_from_file( # async to handle file upload using fastapi's 
                 logger.warning(error_msg)
                 results["errors"].append(error_msg)
         
-        logger.info(f"CSV import completed: {results['success']} users created, {len(results['errors'])} errors")
+        logger.info("CSV import completed: %d users created, %d errors", results['success'], len(results['errors']))
         return results
         
     except Exception as e:
-        logger.error(f"Error processing CSV file {file.filename}: {str(e)}", exc_info=True)
+        logger.error("Error processing CSV file %s: %s", file.filename, str(e), exc_info=True)
         raise HTTPException(
             status_code=400,
             detail=f"Error processing file: {str(e)}"

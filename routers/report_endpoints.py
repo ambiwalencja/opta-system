@@ -2,12 +2,15 @@ from datetime import date
 from sqlalchemy.orm.session import Session
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query as FastapiQuery
+import logging
 
 from db.db_connect import get_db
 from auth.oauth2 import get_user_from_token
 from db_models.user_data import User
 from schemas.user_schemas import UserSignIn
 from utils import pacjent_functions, report_functions, report_variables_lists
+
+logger = logging.getLogger("opta_system_logger")
 
 
 router = APIRouter(
@@ -22,7 +25,9 @@ def get_pacjent_counts_by_year(db: Session = Depends(get_db),
                         start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_counts report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_counts report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_pacjent_counts_by_year(db, date_range)
 
@@ -32,7 +37,9 @@ def get_average_age_by_year(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized average_age report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing average_age report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_average_age_by_year(db, date_range)
 
@@ -41,8 +48,7 @@ def get_age_group_counts(db: Session = Depends(get_db),
                        current_user: UserSignIn = Depends(get_user_from_token("access_token")),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
-    # if current_user.Role != 'admin':
-    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s accessing age_groups report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_age_group_counts(db, date_range)
 
@@ -53,7 +59,9 @@ def get_single_choice_form_variable_counts(variable_name: str = FastapiQuery(...
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_form_single report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_form_single report for variable: %s", current_user.Username, variable_name)
     date_range = (start, end) if start and end else None
     return report_functions.get_single_choice_form_variable_counts(db, variable_name, date_range)
 
@@ -63,7 +71,9 @@ def get_all_single_choice_form_variable_counts(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_form_single_all report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_form_single_all report", current_user.Username)
     date_range = (start, end) if start and end else None
     variable_names = report_variables_lists.single_choice_fields
     result = {}
@@ -78,7 +88,9 @@ def get_all_text_form_variable_counts(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_form_text_all report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_form_text_all report", current_user.Username)
     date_range = (start, end) if start and end else None
     variable_names = report_variables_lists.text_fields
     result = {}
@@ -94,7 +106,9 @@ def get_multiple_choice_form_variable_counts(variable_name: str = FastapiQuery(.
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_form_multiple report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_form_multiple report for variable: %s", current_user.Username, variable_name)
     date_range = (start, end) if start and end else None
     return report_functions.get_multiple_choice_form_variable_counts(db, variable_name, date_range)
 
@@ -104,7 +118,9 @@ def get_all_multiple_choice_form_variable_counts(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_form_multiple_all report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_form_multiple_all report", current_user.Username)
     date_range = (start, end) if start and end else None
     variable_names = report_variables_lists.multiple_choice_fields
     result = {}
@@ -119,10 +135,11 @@ def get_pacjent_korzystanie_z_pomocy_as_bool(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_korzystanie_z_pomocy report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_korzystanie_z_pomocy report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_multiple_choice_variable_as_bool_counts(db, "Korzystanie_z_pomocy", report_variables_lists.korzystanie_z_pomocy_options, date_range)
-    # return report_functions.get_korzystanie_z_pomocy_bool_counts(db, date_range)
 
 @router.get('/pacjent_zaproponowane_wsparcie_indywidualne/')
 def get_pacjent_zaproponowane_wsparcie_indywidualne_as_bool(db: Session = Depends(get_db), 
@@ -130,10 +147,11 @@ def get_pacjent_zaproponowane_wsparcie_indywidualne_as_bool(db: Session = Depend
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_zaproponowane_wsparcie_indywidualne report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_zaproponowane_wsparcie_indywidualne report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_multiple_choice_variable_as_bool_counts(db, "Zaproponowane_wsparcie", report_variables_lists.zaproponowane_wsparcie_indywidualne_options, date_range)
-    # return report_functions.get_zaproponowane_wsparcie_indywidualne_bool_counts(db, date_range)
 
 @router.get('/pacjent_zaproponowane_wsparcie_grupowe/')
 def get_pacjent_zaproponowane_wsparcie_grupowe_as_bool(db: Session = Depends(get_db), 
@@ -141,7 +159,9 @@ def get_pacjent_zaproponowane_wsparcie_grupowe_as_bool(db: Session = Depends(get
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_zaproponowane_wsparcie_grupowe report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_zaproponowane_wsparcie_grupowe report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_multiple_choice_variable_as_bool_counts(db, "Zaproponowane_wsparcie", report_variables_lists.zaproponowane_wsparcie_grupowe_options, date_range)
 
@@ -151,7 +171,9 @@ def get_pacjent_postepowanie_bool(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjent_postepowanie_bool report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjent_postepowanie_bool report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_postepowanie_as_bool_counts(db, date_range)
 
@@ -161,7 +183,9 @@ def get_wizyty_counts(db: Session = Depends(get_db),
                         start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized wizyty_counts report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing wizyty_counts report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_wizyty_counts(db, date_range)
 
@@ -172,7 +196,9 @@ def get_pacjenci_by_wizyty(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjenci_by_wizyty report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjenci_by_wizyty report (visit_type=%s)", current_user.Username, visit_type)
     date_range = (start, end) if start and end else None
     return report_functions.get_pacjent_counts_by_wizyty_number(db, visit_type, date_range)
 
@@ -182,7 +208,9 @@ def get_pacjenci_by_wizyty_by_type(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjenci_by_wizyty_by_type report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjenci_by_wizyty_by_type report", current_user.Username)
     date_range = (start, end) if start and end else None
     visit_type_list = report_variables_lists.typ_wizyty_options.keys()
     result = {}
@@ -199,7 +227,9 @@ def get_pacjenci_by_hours_fixed(db: Session = Depends(get_db),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     '''Hours counted using fixed duration per visit type, given in a dictionary.'''
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjenci_by_hours report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjenci_by_hours report (visit_type=%s)", current_user.Username, visit_type)
     date_range = (start, end) if start and end else None
     return report_functions.get_pacjent_counts_by_hours_fixed(db, visit_type, date_range)
 
@@ -211,7 +241,9 @@ def get_pacjenci_by_hours_dbwise(db: Session = Depends(get_db),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     '''Hours counted using actual hours recorded in the database.'''
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjenci_by_hours_2 report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjenci_by_hours_2 report (visit_type=%s)", current_user.Username, visit_type)
     date_range = (start, end) if start and end else None
     return report_functions.get_pacjent_counts_by_hours_dbwise(db, visit_type, date_range)
 
@@ -222,7 +254,9 @@ def get_pacjenci_by_hours_all_dbwise(db: Session = Depends(get_db),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     '''Hours counted using actual hours recorded in the database.'''
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized pacjenci_by_hours_all report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing pacjenci_by_hours_all report", current_user.Username)
     date_range = (start, end) if start and end else None
     visit_type_list = report_variables_lists.typ_wizyty_options.keys()
     result = {}
@@ -237,7 +271,9 @@ def get_uczestnicy_grupy_counts(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized uczestnicy_grupy_counts report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing uczestnicy_grupy_counts report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_uczestnicy_grupy_counts(db, date_range)
 
@@ -248,7 +284,9 @@ def get_uczestnicy_grupy_group_completion_counts(db: Session = Depends(get_db),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     '''True = ukończone, False = nieukończone, none = brak danych albo grupa trwa'''
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized uczestnicy_grupy_completion report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing uczestnicy_grupy_completion report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_uczestnicy_grupy_counts_by_completion(db, date_range)
 
@@ -258,6 +296,8 @@ def get_uczestnicy_grupy_attendance_counts(db: Session = Depends(get_db),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
     if current_user.Role != 'admin':
+        logger.warning("Unauthorized uczestnicy_grupy_attendance report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    logger.info("User %s (admin) accessing uczestnicy_grupy_attendance report", current_user.Username)
     date_range = (start, end) if start and end else None
     return report_functions.get_uczestnicy_grupy_counts_by_attendance(db, date_range)
