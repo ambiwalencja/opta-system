@@ -57,7 +57,11 @@ def show_pacjent_list(
     sort_by: str = FastapiQuery(None, description="Field to sort by"),
     sort_direction: str = FastapiQuery(None, description="'asc' or 'desc'"),
     search_term: Optional[str] = FastapiQuery(None, description="Search in name, email, phone"),
-    filters: Optional[List[str]] = FastapiQuery(None, description="Filters as 'field:value' pairs. If it's a date range, write second date in the same pair, after a comma")
+    filters: Optional[List[str]] = FastapiQuery(None, description="Filters as 'field:value' pairs separated by '|' or multiple filters parameters. Date ranges use ',' within a filter.")
     ):
+    # Support both single parameter with | separator and multiple parameters
+    if filters and len(filters) == 1 and '|' in filters[0]:
+        filters = [f.strip() for f in filters[0].split('|') if f.strip()]
+    
     logger.debug("User %s retrieving pacjent list (sort_by=%s, sort_direction=%s, search_term=%s)", current_user.Username, sort_by, sort_direction, search_term)
     return pacjent_functions.get_all_pacjenci(db, sort_by, sort_direction, search_term, filters)
