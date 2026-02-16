@@ -11,3 +11,4 @@ test.py
 .DS_Store?
 ._*
 *.sql
+logs/

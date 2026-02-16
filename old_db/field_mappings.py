@@ -115,7 +115,7 @@ PROBLEMY_MAP = {
     11: "inne - jakie?"
 }
 
-WSPARCIE_MAP = {
+ZAPROPONOWANE_WSPARCIE_MAP = {
     1: "działania informacyjno-konsultacyjne",
     2: "konsultacje prawne",
     3: "konsultacje pedagogiczne",
