@@ -92,6 +92,23 @@ def clean_phone_numbers(phone_column: pd.Series) -> pd.Series:
     cleaned_phone_column.loc[invalid_mask] = None
     return cleaned_phone_column
 
+def correct_multiple_choice_other_values(df: pd.DataFrame, col: str, col_detail: str):
+    """Correct 'Other' values in multiple-choice fields, where detail for other is provided."""    
+    # # The Pandas Way
+    # df[col] = df.apply(
+    #     lambda row: row[col] + ["inne - jakie?"] 
+    #     if (row[col_detail] != "" and row[col_detail] != None and "inne - jakie?" not in row[col]) 
+    #     else row[col], 
+    #     axis=1
+    # )
+
+    # The Native Python Way
+    df[col] = [
+        original_list + ["inne - jakie?"] if (other != "" and other != None and "inne - jakie?" not in original_list) else original_list
+        for other, original_list in zip(df[col_detail], df[col])
+    ]
+    return df
+
 def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     # Delete unnecessary columns
     columns_to_drop = ['id_pacjenta', 'data1konsultacji', 'sadowe', 'postępowanie'] # te dwie ostatnie to stare zmienne
@@ -116,9 +133,16 @@ def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     df['Status_pacjenta'] = df['Status_pacjenta'].map(field_mappings.STATUS_PACJENTA_MAP)
 
     # Convert multiple-choice fields
-    df = transform_multiple_choice(df, 'Korzystanie_z_pomocy', field_mappings.KORZYSTANIE_Z_POMOCY_MAP)
-    df = transform_multiple_choice(df, 'Problemy', field_mappings.PROBLEMY_MAP)
-    df = transform_multiple_choice(df, 'Zaproponowane_wsparcie', field_mappings.WSPARCIE_MAP)
+
+    # df = transform_multiple_choice(df, 'Korzystanie_z_pomocy', field_mappings.KORZYSTANIE_Z_POMOCY_MAP)
+    # df = transform_multiple_choice(df, 'Problemy', field_mappings.PROBLEMY_MAP)
+    # df = transform_multiple_choice(df, 'Zaproponowane_wsparcie', field_mappings.ZAPROPONOWANE_WSPARCIE_MAP)
+
+    multiple_choice_fields = ['Korzystanie_z_pomocy', 'Problemy', 'Zaproponowane_wsparcie']
+    for field in multiple_choice_fields:
+        mapping = getattr(field_mappings, f"{field}_MAP".upper(), {})
+        df = transform_multiple_choice(df, field, mapping)
+        df = correct_multiple_choice_other_values(df, field, f"{field}_inne")
 
     # Convert boolean fields
     boolean_columns = ['Niebieska_karta', 'Grupa_robocza', 'Plan_pomocy', 'Narzedzia_prawne', 'Zawiadomienie', 'Ewaluacja',

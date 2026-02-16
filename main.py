@@ -1,12 +1,14 @@
-from fastapi import FastAPI
+# gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 127.0.0.1:8000
+# gunicorn -c gunicorn_config.py main:app
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import add_pagination
-
 from dotenv import load_dotenv
-import os
+import os, uuid
+
 from db import db_connect
-from db_models import user_data, client_data, config
+# from db_models import user_data, client_data, config
 from routers import (
     user_endpoints, pacjent_endpoints, grupa_endpoints, wizyta_endpoints,
     config_endpoints, frontend_specific_endpoints, spot_grup_endpoints,
@@ -14,7 +16,7 @@ from routers import (
 )
 from old_db import old_db_endpoints
 from old_db.old_db_connect import initialize_old_db
-
+from logging_setup import setup_logger, request_id_var
 
 if os.name == "nt":
     load_dotenv()
@@ -25,6 +27,29 @@ app = FastAPI(
     version="0.1",
 )
 
+# LOGGER
+logger = setup_logger()
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    # 1. Generate a unique ID
+    rid = str(uuid.uuid4())
+    
+    # 2. Set it in our ContextVar so the Filter can find it
+    token = request_id_var.set(rid)
+    
+    try:
+        # 3. Process the request
+        response = await call_next(request)
+        
+        # 4. Optional: Send the ID back to the user in a header (great for support!)
+        response.headers["X-Request-ID"] = rid
+        return response
+    finally:
+        # 5. Clean up the ContextVar after the request is finished
+        request_id_var.reset(token)
+
+# PAGINATION
 add_pagination(app)
 
 origins = [
@@ -48,10 +73,13 @@ app.include_router(config_endpoints.router)
 app.include_router(frontend_specific_endpoints.router)
 app.include_router(spot_grup_endpoints.router)
 app.include_router(report_endpoints.router)
+
 old_db_enabled = os.getenv("OLD_DB_MODE", "false").lower() == "true"
 if old_db_enabled:
     initialize_old_db()
     app.include_router(old_db_endpoints.router)
+
+
 
 @app.get("/", response_class=HTMLResponse)
 def root():
@@ -105,9 +133,11 @@ def root():
     """
     return html_content
 
+# create schemas and tables when starting program
 db_connect.create_schema('client_data')
 db_connect.create_schema('user_data')
 db_connect.create_schema('config')
 
-# create tables when starting program
 db_connect.Base.metadata.create_all(db_connect.engine)
+
+logger.info("OPTA System started successfully.")

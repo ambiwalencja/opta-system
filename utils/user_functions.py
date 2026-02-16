@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.orm.session import Session
 from fastapi import HTTPException, status as http_status
 from datetime import datetime
@@ -6,37 +7,57 @@ from auth.hashing import Hash
 from db_models.user_data import User
 from schemas.user_schemas import UserBase
 
+logger = logging.getLogger("opta_system_logger")
+
 
 async def create_user(db: Session, request: UserBase):
-    new_user = User(
-        Full_name = request.full_name,
-        Username = request.username,
-        Password = Hash.bcrypt(request.password),
-        Role = request.role,
-        Specjalista = request.specjalista,
-        Status = request.status, # może to być, tylko na froncie nie będzie używane
-        Created = datetime.now(),
-        Last_modified = datetime.now(),
-        Last_login = None
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    try:
+        logger.info("Creating new user with username: %s", request.username)
+        new_user = User(
+            Full_name = request.full_name,
+            Username = request.username,
+            Password = Hash.bcrypt(request.password),
+            Role = request.role,
+            Specjalista = request.specjalista,
+            Status = request.status, # może to być, tylko na froncie nie będzie używane
+            Created = datetime.now(),
+            Last_modified = datetime.now(),
+            Last_login = None
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        logger.info("User %s created successfully with ID: %s", request.username, new_user.ID_uzytkownika)
+        return new_user
+    except Exception as e:
+        logger.error("Error creating user %s: %s", request.username, str(e), exc_info=True)
+        raise
 
 def get_user_by_username(db: Session, username: str):
-    user = db.query(User).filter(User.Username == username).first()
-    if not user:
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND,
-        detail=f'User with username {username} not found')
-    return user
+    try:
+        user = db.query(User).filter(User.Username == username).first()
+        if not user:
+            logger.warning("User lookup failed: username '%s' not found", username)
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f'User with username {username} not found')
+        logger.info("User %s retrieved successfully", username)
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error retrieving user %s: %s", username, str(e), exc_info=True)
+        raise
 
 def update_last_login(db: Session, user: User):
-    user.Last_login = datetime.now() # to jest utc
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return 
+    try:
+        user.Last_login = datetime.now() # to jest utc
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        logger.info("Last login updated for user %s", user.Username)
+    except Exception as e:
+        logger.error("Error updating last login for user %s: %s", user.Username, str(e), exc_info=True)
+        raise 
 
 def format_datetime(dt: datetime) -> str:
     if not dt:
@@ -49,16 +70,21 @@ def format_datetime(dt: datetime) -> str:
     return dt.strftime("%d.%m.%Y, %H:%M")
 
 def get_recently_active_users(db: Session, limit: int = 10):
-    user_list = (
-        db.query(User)
-        .filter(User.Last_login != None)
-        .order_by(User.Last_login.desc())
-        .limit(limit)
-        .all()
-    )
-    for user in user_list:
-        print(f"User {user.Username}: Last login: {user.Last_login}") 
-    return user_list
+    try:
+        user_list = (
+            db.query(User)
+            .filter(User.Last_login != None)
+            .order_by(User.Last_login.desc())
+            .limit(limit)
+            .all()
+        )
+        logger.info("Retrieved %d recently active users (limit: %d)", len(user_list), limit)
+        for user in user_list:
+            logger.debug("User %s: Last login: %s", user.Username, user.Last_login)
+        return user_list
+    except Exception as e:
+        logger.error("Error retrieving recently active users: %s", str(e), exc_info=True)
+        raise
 
 # async def validate_user_update_data(
 #     db: Session,

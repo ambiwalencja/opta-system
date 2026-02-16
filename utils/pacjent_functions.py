@@ -1,11 +1,12 @@
 from fastapi import HTTPException, status
 from datetime import datetime
-from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc
+from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc, or_
 from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional, Dict, Any, List
+import logging
 
 from auth.hashing import Hash
 from db_models.client_data import Pacjent, WizytaIndywidualna #, Grupa
@@ -16,57 +17,77 @@ from schemas.pacjent_schemas import (
 from utils.validation import validate_choice, validate_choice_fields
 from utils.safe_mappings import SORTABLE_FIELDS, FILTERING_FIELDS, SEARCHABLE_FIELDS
 
+logger = logging.getLogger("opta_system_logger")
+
 
 def get_pacjent_by_id(db: Session, id_pacjenta: int):
-    pacjent = db.query(Pacjent).filter(Pacjent.ID_pacjenta == id_pacjenta).first()
-    if not pacjent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Pacjent with ID {id_pacjenta} not found")
-    return pacjent
+    try:
+        pacjent = db.query(Pacjent).filter(Pacjent.ID_pacjenta == id_pacjenta).first()
+        if not pacjent:
+            logger.warning("Pacjent with ID %d not found", id_pacjenta)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Pacjent with ID {id_pacjenta} not found")
+        logger.debug("Pacjent with ID %d retrieved successfully", id_pacjenta)
+        return pacjent
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error retrieving pacjent with ID %d: %s", id_pacjenta, str(e), exc_info=True)
+        raise
 
 def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
-    # Check for duplicates - phone
-    if pacjent_data.telefon:
-        duplicate = db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first()
+    try:
+        # Check for duplicates - phone
+        if pacjent_data.telefon:
+            duplicate = db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first()
+            if duplicate:
+                logger.warning("Duplicate pacjent found by phone %s (ID: %d)", pacjent_data.telefon, duplicate.ID_pacjenta)
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": f'Client with phone number {pacjent_data.telefon} already exists',
+                        "duplicate_id": duplicate.ID_pacjenta
+                    }
+                )
+        
+        # Check for duplicates - email
+        if pacjent_data.email:
+            duplicate = db.query(Pacjent).filter(Pacjent.Email == pacjent_data.email).first()
+            if duplicate:
+                logger.warning("Duplicate pacjent found by email %s (ID: %d)", pacjent_data.email, duplicate.ID_pacjenta)
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": f'Client with email {pacjent_data.email} already exists',
+                        "duplicate_id": duplicate.ID_pacjenta
+                    }
+                )
+        
+        # Check for duplicates - name and address
+        duplicate = db.query(Pacjent).filter(
+            Pacjent.Imie == pacjent_data.imie,
+            Pacjent.Nazwisko == pacjent_data.nazwisko,
+            Pacjent.Dzielnica == pacjent_data.dzielnica,
+            # Pacjent.Ulica == pacjent_data.ulica, # na ten moment kasujemy dokładny adres z warunku
+            # Pacjent.Nr_domu == pacjent_data.nr_domu
+        ).first()
+        
         if duplicate:
+            logger.warning("Duplicate pacjent found by name/address: %s %s (ID: %d)", pacjent_data.imie, pacjent_data.nazwisko, duplicate.ID_pacjenta)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
-                    "message": f'Client with phone number {pacjent_data.telefon} already exists',
+                    "message": f'Client with name {pacjent_data.imie} {pacjent_data.nazwisko} and the same address already exists',
                     "duplicate_id": duplicate.ID_pacjenta
                 }
             )
-    
-    # Check for duplicates - email
-    if pacjent_data.email:
-        duplicate = db.query(Pacjent).filter(Pacjent.Email == pacjent_data.email).first()
-        if duplicate:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "message": f'Client with email {pacjent_data.email} already exists',
-                    "duplicate_id": duplicate.ID_pacjenta
-                }
-            )
-    
-    # Check for duplicates - name and address
-    duplicate = db.query(Pacjent).filter(
-        Pacjent.Imie == pacjent_data.imie,
-        Pacjent.Nazwisko == pacjent_data.nazwisko,
-        Pacjent.Dzielnica == pacjent_data.dzielnica,
-        # Pacjent.Ulica == pacjent_data.ulica, # na ten moment kasujemy dokładny adres z warunku
-        # Pacjent.Nr_domu == pacjent_data.nr_domu
-    ).first()
-    
-    if duplicate:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "message": f'Client with name {pacjent_data.imie} {pacjent_data.nazwisko} and the same address already exists',
-                "duplicate_id": duplicate.ID_pacjenta
-            }
-        )
-    return None 
+        logger.debug("No duplicates found for pacjent: %s %s", pacjent_data.imie, pacjent_data.nazwisko)
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error checking pacjent duplicates: %s", str(e), exc_info=True)
+        raise 
 
 def check_pacjent_duplicates_for_import(db: Session, pacjent_data: PacjentCreateBasic):
     """
@@ -75,28 +96,35 @@ def check_pacjent_duplicates_for_import(db: Session, pacjent_data: PacjentCreate
         None if no duplicate found
         List[original_pacjent_id, duplicate_field, duplicate_value] if duplicate found
     """
-    # Check for duplicates - phone
-    if pacjent_data.telefon:
-        original_pacjent = db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first()
-        if original_pacjent:
-            return [original_pacjent.ID_pacjenta, "Telefon", pacjent_data.telefon]
-    
-    # Check for duplicates - email
-    if pacjent_data.email:
-        original_pacjent = db.query(Pacjent).filter(Pacjent.Email == pacjent_data.email).first()
-        if original_pacjent:
-            return [original_pacjent.ID_pacjenta, "Email", pacjent_data.email]
+    try:
+        # Check for duplicates - phone
+        if pacjent_data.telefon:
+            original_pacjent = db.query(Pacjent).filter(Pacjent.Telefon == pacjent_data.telefon).first()
+            if original_pacjent:
+                logger.debug("Import duplicate detected by phone %s (original ID: %d)", pacjent_data.telefon, original_pacjent.ID_pacjenta)
+                return [original_pacjent.ID_pacjenta, "Telefon", pacjent_data.telefon]
+        
+        # Check for duplicates - email
+        if pacjent_data.email:
+            original_pacjent = db.query(Pacjent).filter(Pacjent.Email == pacjent_data.email).first()
+            if original_pacjent:
+                logger.debug("Import duplicate detected by email %s (original ID: %d)", pacjent_data.email, original_pacjent.ID_pacjenta)
+                return [original_pacjent.ID_pacjenta, "Email", pacjent_data.email]
 
-    # Check for duplicates - name and address
-    original_pacjent = db.query(Pacjent).filter(
-        Pacjent.Imie == pacjent_data.imie,
-        Pacjent.Nazwisko == pacjent_data.nazwisko,
-        Pacjent.Dzielnica == pacjent_data.dzielnica,
-    ).first()
-    if original_pacjent:
-        return [original_pacjent.ID_pacjenta, "Imie,Nazwisko,Dzielnica", f'{pacjent_data.imie} {pacjent_data.nazwisko} ({pacjent_data.dzielnica})']
+        # Check for duplicates - name and address
+        original_pacjent = db.query(Pacjent).filter(
+            Pacjent.Imie == pacjent_data.imie,
+            Pacjent.Nazwisko == pacjent_data.nazwisko,
+            Pacjent.Dzielnica == pacjent_data.dzielnica,
+        ).first()
+        if original_pacjent:
+            logger.debug("Import duplicate detected by name/address: %s %s (original ID: %d)", pacjent_data.imie, pacjent_data.nazwisko, original_pacjent.ID_pacjenta)
+            return [original_pacjent.ID_pacjenta, "Imie,Nazwisko,Dzielnica", f'{pacjent_data.imie} {pacjent_data.nazwisko} ({pacjent_data.dzielnica})']
 
-    return None
+        return None
+    except Exception as e:
+        logger.error("Error checking pacjent duplicates for import: %s", str(e), exc_info=True)
+        raise
 
 def record_pacjent_duplicate(db: Session, original_id: int, duplicate_id: int, duplicate_field: str, duplicate_value: str = None) -> None:
     """
@@ -108,10 +136,10 @@ def record_pacjent_duplicate(db: Session, original_id: int, duplicate_id: int, d
         duplicate_field: Which field(s) caused the duplicate (e.g., "Telefon", "Email")
         duplicate_value: Optional - the actual value that was duplicated
     """
-    from sqlalchemy import insert
-    from db_models.client_data import pacjent_duplicates
-    
     try:
+        from sqlalchemy import insert
+        from db_models.client_data import pacjent_duplicates
+        
         stmt = insert(pacjent_duplicates).values(
             ID_pacjenta=original_id,
             ID_zduplikowanego_pacjenta=duplicate_id,
@@ -120,103 +148,126 @@ def record_pacjent_duplicate(db: Session, original_id: int, duplicate_id: int, d
         )
         db.execute(stmt)
         db.commit()
+        logger.info("Recorded duplicate relationship: original_id=%d, duplicate_id=%d, field=%s", original_id, duplicate_id, duplicate_field)
     except Exception as e:
         db.rollback()
-        print(f"Error recording duplicate relationship: {e}")
+        logger.error("Error recording duplicate relationship (original_id=%d, duplicate_id=%d): %s", original_id, duplicate_id, str(e), exc_info=True)
     
 def create_pacjent_basic(db: Session, pacjent_data: PacjentCreateBasic, id_uzytkownika: int):
-    # 1. Check for duplicates
-    check_pacjent_duplicates(db, pacjent_data)
-    # 2. Dynamic validation of all choice fields (here - only dzielnica)
-    validate_choice_fields(db, pacjent_data)
-    # 3. Convert to dict with DB column names
-    data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
+    try:
+        logger.info("Creating new pacjent: %s %s", pacjent_data.imie, pacjent_data.nazwisko)
+        # 1. Check for duplicates
+        check_pacjent_duplicates(db, pacjent_data)
+        # 2. Dynamic validation of all choice fields (here - only dzielnica)
+        validate_choice_fields(db, pacjent_data)
+        # 3. Convert to dict with DB column names
+        data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
 
-    # 4. Add backend-generated fields
-    data_dict["Created"] = datetime.now()
-    data_dict["Last_modified"] = datetime.now()
-    data_dict["ID_uzytkownika"] = id_uzytkownika
+        # 4. Add backend-generated fields
+        data_dict["Created"] = datetime.now()
+        data_dict["Last_modified"] = datetime.now()
+        data_dict["ID_uzytkownika"] = id_uzytkownika
 
-    # 6. Create SQLAlchemy object
-    new_pacjent = Pacjent(**data_dict)
-    # 7. actually add to DB
-    db.add(new_pacjent)
-    db.commit()
-    db.refresh(new_pacjent)
-    return new_pacjent
+        # 6. Create SQLAlchemy object
+        new_pacjent = Pacjent(**data_dict)
+        # 7. actually add to DB
+        db.add(new_pacjent)
+        db.commit()
+        db.refresh(new_pacjent)
+        logger.info("Pacjent created successfully with ID: %d", new_pacjent.ID_pacjenta)
+        return new_pacjent
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error creating pacjent %s %s: %s", pacjent_data.imie, pacjent_data.nazwisko, str(e), exc_info=True)
+        raise
 
 def import_pacjent(db: Session, pacjent_data: PacjentImport): # , id_uzytkownika: int
-    # 1. Check for duplicates
-    duplicate_result = check_pacjent_duplicates_for_import(db, pacjent_data)
-    # 2. Dynamic validation of all choice fields
-    validate_choice_fields(db, pacjent_data)
-    # 3. Convert to dict with DB column names
-    data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
+    try:
+        logger.info("Starting pacjent import: %s %s", pacjent_data.imie, pacjent_data.nazwisko)
+        # 1. Check for duplicates
+        duplicate_result = check_pacjent_duplicates_for_import(db, pacjent_data)
+        # 2. Dynamic validation of all choice fields
+        validate_choice_fields(db, pacjent_data)
+        # 3. Convert to dict with DB column names
+        data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
 
-    # 4. Add backend-generated fields
-    data_dict["Created"] = datetime.now()
-    data_dict["Last_modified"] = datetime.now()
-    # data_dict["ID_uzytkownika"] = id_uzytkownika
+        # 4. Add backend-generated fields
+        data_dict["Created"] = datetime.now()
+        data_dict["Last_modified"] = datetime.now()
+        # data_dict["ID_uzytkownika"] = id_uzytkownika
 
-    # 5. Conditional cleanup - optional
-    if not data_dict.get("Niebieska_karta"):
-        data_dict["Niebieska_karta_inicjator"] = None
-        data_dict["Grupa_robocza"] = None
-        data_dict["Grupa_robocza_sklad"] = None
-        data_dict["Plan_pomocy"] = None
-        data_dict["Plan_pomocy_opis"] = None
-        data_dict["Narzedzia_prawne"] = None
-        data_dict["Zawiadomienie"] = None
-    
-    # 6. Create SQLAlchemy object
-    # print(f'Importing pacjent with data: /n {data_dict}') #test
-    new_pacjent = Pacjent(**data_dict)
-    # print(f'Created Pacjent object: /n {new_pacjent}') #test
-    # 7. actually add to DB
-    db.add(new_pacjent) 
-    db.commit() 
-    db.refresh(new_pacjent)
+        # 5. Conditional cleanup - optional
+        if not data_dict.get("Niebieska_karta"):
+            data_dict["Niebieska_karta_inicjator"] = None
+            data_dict["Grupa_robocza"] = None
+            data_dict["Grupa_robocza_sklad"] = None
+            data_dict["Plan_pomocy"] = None
+            data_dict["Plan_pomocy_opis"] = None
+            data_dict["Narzedzia_prawne"] = None
+            data_dict["Zawiadomienie"] = None
+        
+        # 6. Create SQLAlchemy object
+        # print(f'Importing pacjent with data: /n {data_dict}') #test
+        new_pacjent = Pacjent(**data_dict)
+        # print(f'Created Pacjent object: /n {new_pacjent}') #test
+        # 7. actually add to DB
+        db.add(new_pacjent) 
+        db.commit() 
+        db.refresh(new_pacjent)
+        logger.info("Pacjent imported successfully with ID: %d", new_pacjent.ID_pacjenta)
 
-    # 8. If duplicate found, record it
-    if duplicate_result:
-        original_id, duplicate_field, duplicate_value = duplicate_result
-        record_pacjent_duplicate(db, original_id, new_pacjent.ID_pacjenta, duplicate_field, duplicate_value)
-        print(f"Duplicate recorded: {new_pacjent.Imie} {new_pacjent.Nazwisko} is duplicate of ID {original_id}")
-    
-    return new_pacjent
+        # 8. If duplicate found, record it
+        if duplicate_result:
+            original_id, duplicate_field, duplicate_value = duplicate_result
+            record_pacjent_duplicate(db, original_id, new_pacjent.ID_pacjenta, duplicate_field, duplicate_value)
+            print(f"Duplicate recorded: {new_pacjent.Imie} {new_pacjent.Nazwisko} is duplicate of ID {original_id}")
+        
+        return new_pacjent
+    except Exception as e:
+        logger.error("Error importing pacjent %s %s: %s", pacjent_data.imie, pacjent_data.nazwisko, str(e), exc_info=True)
+        raise
 
 def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel): # BaseModel, żeby mógł przyjmować PacjentCreateForm i PacjentUpdate
-    # 1. Check that pacjent exists and find it
-    existing_pacjent = get_pacjent_by_id(db, id_pacjenta)
-    
-    # 2. Dynamic validation of all choice fields
-    validate_choice_fields(db, pacjent_data)
-    
-    # 3. Convert to dict with DB column names
-    data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
-    
-    # 4. Add backend-generated fields
-    data_dict["Last_modified"] = datetime.now()
-    # data_dict["ID_uzytkownika"] = id_uzytkownika # można się zastanowić, czy tutaj zmieniać rejestrującego
+    try:
+        logger.info("Updating pacjent with ID: %d", id_pacjenta)
+        # 1. Check that pacjent exists and find it
+        existing_pacjent = get_pacjent_by_id(db, id_pacjenta)
+        
+        # 2. Dynamic validation of all choice fields
+        validate_choice_fields(db, pacjent_data)
+        
+        # 3. Convert to dict with DB column names
+        data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
+        
+        # 4. Add backend-generated fields
+        data_dict["Last_modified"] = datetime.now()
+        # data_dict["ID_uzytkownika"] = id_uzytkownika # można się zastanowić, czy tutaj zmieniać rejestrującego
 
-    # 5. Conditional cleanup - optional
-    if "Niebieska_karta" in data_dict and not data_dict.get("Niebieska_karta"):
-        data_dict["Niebieska_karta_inicjator"] = None
-        data_dict["Grupa_robocza"] = None
-        data_dict["Grupa_robocza_sklad"] = None
-        data_dict["Plan_pomocy"] = None
-        data_dict["Plan_pomocy_opis"] = None
-        data_dict["Narzedzia_prawne"] = None
-        data_dict["Zawiadomienie"] = None
+        # 5. Conditional cleanup - optional
+        if "Niebieska_karta" in data_dict and not data_dict.get("Niebieska_karta"):
+            data_dict["Niebieska_karta_inicjator"] = None
+            data_dict["Grupa_robocza"] = None
+            data_dict["Grupa_robocza_sklad"] = None
+            data_dict["Plan_pomocy"] = None
+            data_dict["Plan_pomocy_opis"] = None
+            data_dict["Narzedzia_prawne"] = None
+            data_dict["Zawiadomienie"] = None
 
-    # 6. Update fields in existing object
-    for key, value in data_dict.items():
-        setattr(existing_pacjent, key, value)
-    
-    # 7. Commit changes to DB
-    db.commit()
-    db.refresh(existing_pacjent)
-    return existing_pacjent
+        # 6. Update fields in existing object
+        for key, value in data_dict.items():
+            setattr(existing_pacjent, key, value)
+        
+        # 7. Commit changes to DB
+        db.commit()
+        db.refresh(existing_pacjent)
+        logger.info("Pacjent with ID %d updated successfully", id_pacjenta)
+        return existing_pacjent
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error updating pacjent with ID %d: %s", id_pacjenta, str(e), exc_info=True)
+        raise
 
 def update_pacjent(db: Session, id_pacjenta: int, pacjent_data: PacjentUpdate):
     return core_update_pacjent(db, id_pacjenta, pacjent_data)
@@ -225,85 +276,95 @@ def create_pacjent_form(db: Session, id_pacjenta: int, pacjent_data: PacjentCrea
     return core_update_pacjent(db, id_pacjenta, pacjent_data)
 
 def get_recent_pacjenci(db: Session, id_uzytkownika: int, limit: int = 10):
-    # Create an alias for WizytaIndywidualna to use in the subquery
-    WizytaAlias = aliased(WizytaIndywidualna)
-    LatestWizyta = aliased(WizytaIndywidualna)
+    try:
+        # Create an alias for WizytaIndywidualna to use in the subquery
+        WizytaAlias = aliased(WizytaIndywidualna)
+        LatestWizyta = aliased(WizytaIndywidualna)
 
-    # Subquery to get the top 10 patient IDs and their latest visit dates
-    latest_visits_subquery = (
-        db.query(
-            WizytaAlias.ID_pacjenta,
-            # func.max(WizytaAlias.Data_wizyty).label('latest_visit_date'),
-            func.max(WizytaAlias.ID_wizyty).label('latest_visit_id')
+        # Subquery to get the top 10 patient IDs and their latest visit dates
+        latest_visits_subquery = (
+            db.query(
+                WizytaAlias.ID_pacjenta,
+                # func.max(WizytaAlias.Data_wizyty).label('latest_visit_date'),
+                func.max(WizytaAlias.ID_wizyty).label('latest_visit_id')
+            )
+            .filter(WizytaAlias.ID_uzytkownika == id_uzytkownika)
+            .group_by(WizytaAlias.ID_pacjenta)
+            .order_by(func.max(WizytaAlias.Data_wizyty).desc())
+            .limit(limit)
+            .subquery()
         )
-        .filter(WizytaAlias.ID_uzytkownika == id_uzytkownika)
-        .group_by(WizytaAlias.ID_pacjenta)
-        .order_by(func.max(WizytaAlias.Data_wizyty).desc())
-        .limit(limit)
-        .subquery()
-    )
-    
-    # patient_ids = db.query(latest_visits_subquery.c.ID_pacjenta).all()
-    # print([id[0] for id in patient_ids])
+        
+        # patient_ids = db.query(latest_visits_subquery.c.ID_pacjenta).all()
+        # print([id[0] for id in patient_ids])
 
-    # Main query to fetch patient details and the specific latest visit details
-    pacjent_list = (
-        db.query(
-             # Pacjent, # Selecting the full Pacjent object is often simpler here
-            Pacjent.ID_pacjenta,
-            Pacjent.Imie, 
-            Pacjent.Nazwisko,
-            Pacjent.Data_zgloszenia,
-            Pacjent.Email,
-            Pacjent.Telefon,
-            Pacjent.Dzielnica,
-            Pacjent.Ulica,
-            Pacjent.Nr_domu,
-            Pacjent.Nr_mieszkania,
-            Pacjent.Status_pacjenta,
-            LatestWizyta.ID_wizyty,
-            LatestWizyta.Typ_wizyty, # Use the alias for selection
-            LatestWizyta.Data_wizyty          # Use the alias for selection
+        # Main query to fetch patient details and the specific latest visit details
+        pacjent_list = (
+            db.query(
+                 # Pacjent, # Selecting the full Pacjent object is often simpler here
+                Pacjent.ID_pacjenta,
+                Pacjent.Imie, 
+                Pacjent.Nazwisko,
+                Pacjent.Data_zgloszenia,
+                Pacjent.Email,
+                Pacjent.Telefon,
+                Pacjent.Dzielnica,
+                Pacjent.Ulica,
+                Pacjent.Nr_domu,
+                Pacjent.Nr_mieszkania,
+                Pacjent.Status_pacjenta,
+                LatestWizyta.ID_wizyty,
+                LatestWizyta.Typ_wizyty, # Use the alias for selection
+                LatestWizyta.Data_wizyty          # Use the alias for selection
+            )
+            # JOIN 1: Filter Pacjent to the top 10 IDs (Explicit ON required)
+            .join(
+                latest_visits_subquery, 
+                Pacjent.ID_pacjenta == latest_visits_subquery.c.ID_pacjenta
+            )
+            # JOIN 2: Use the ALIAS (LatestWizyta) as the target, and provide the full compound ON clause.
+            .join(
+                LatestWizyta, # Use the ALIAS (the model) as the target
+                (LatestWizyta.ID_pacjenta == Pacjent.ID_pacjenta) & # <-- MUST re-introduce the FK link
+                (LatestWizyta.ID_wizyty == latest_visits_subquery.c.latest_visit_id)
+                # (LatestWizyta.Data_wizyty == latest_visits_subquery.c.latest_visit_date)
+            )
+            .filter(LatestWizyta.ID_uzytkownika == id_uzytkownika)
+            .order_by(LatestWizyta.Data_wizyty.desc())
+            .all()
         )
-        # JOIN 1: Filter Pacjent to the top 10 IDs (Explicit ON required)
-        .join(
-            latest_visits_subquery, 
-            Pacjent.ID_pacjenta == latest_visits_subquery.c.ID_pacjenta
-        )
-        # JOIN 2: Use the ALIAS (LatestWizyta) as the target, and provide the full compound ON clause.
-        .join(
-            LatestWizyta, # Use the ALIAS (the model) as the target
-            (LatestWizyta.ID_pacjenta == Pacjent.ID_pacjenta) & # <-- MUST re-introduce the FK link
-            (LatestWizyta.ID_wizyty == latest_visits_subquery.c.latest_visit_id)
-            # (LatestWizyta.Data_wizyty == latest_visits_subquery.c.latest_visit_date)
-        )
-        .filter(LatestWizyta.ID_uzytkownika == id_uzytkownika)
-        .order_by(LatestWizyta.Data_wizyty.desc())
-        .all()
-    )
-
-    # # Debug: Print results
-    # print(len(pacjent_list), "patients retrieved.")
-    # print("\nSelected patients with their most recent visits:")
-    # for pacjent, wizyta in pacjent_list:
-    #     print(f"Patient {pacjent.ID_pacjenta}: {pacjent.Imie} {pacjent.Nazwisko}, Last visit: {wizyta.Data}")
-
-    return pacjent_list
+        logger.info("Retrieved %d recent pacjenci for user ID: %d", len(pacjent_list), id_uzytkownika)
+        return pacjent_list
+    except Exception as e:
+        logger.error("Error retrieving recent pacjenci for user ID %d: %s", id_uzytkownika, str(e), exc_info=True)
+        raise
 
 def get_recently_created_pacjenci(db: Session, limit: int = 10):
-    pacjent_list = (
-        db.query(Pacjent)
-        .order_by(Pacjent.Created.desc())
-        .limit(limit)
-        .all()
-    )
-    return pacjent_list
+    try:
+        pacjent_list = (
+            db.query(Pacjent)
+            .order_by(Pacjent.Created.desc())
+            .limit(limit)
+            .all()
+        )
+        logger.info("Retrieved %d recently created pacjenci", len(pacjent_list))
+        return pacjent_list
+    except Exception as e:
+        logger.error("Error retrieving recently created pacjenci: %s", str(e), exc_info=True)
+        raise
 
 def delete_pacjent(db: Session, id_pacjenta: int):
-    pacjent = get_pacjent_by_id(db, id_pacjenta)
-    db.delete(pacjent)
-    db.commit()
-    return {"detail": f"Pacjent with ID {id_pacjenta} deleted successfully"}
+    try:
+        pacjent = get_pacjent_by_id(db, id_pacjenta)
+        db.delete(pacjent)
+        db.commit()
+        logger.info("Pacjent with ID %d deleted successfully", id_pacjenta)
+        return {"detail": f"Pacjent with ID {id_pacjenta} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error deleting pacjent with ID %d: %s", id_pacjenta, str(e), exc_info=True)
+        raise
 
 def search_pacjenci(query: Query, search_term: str = None):
     if search_term:
@@ -323,7 +384,11 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
         for f in filters:
             if ':' in f:
                 field, value = f.split(':', 1)
-                filter_params[field.strip()] = value.strip()
+                field = field.strip()
+                value = value.strip()
+                if not value:  # Skip if value is empty
+                    continue
+                filter_params[field] = value
 
     # FILTERING
     for param_name, value_str in filter_params.items():
@@ -338,6 +403,7 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
                     continue 
             elif isinstance(column_to_filter.type, Date):
                 # Check if it's a date range (format: "2023-01-01,2023-12-31")
+                # TODO: zapytać mamę, Julę, czy mogą wybierać konkretną datę, a nie rok
                 if ',' in value_str:
                     try:
                         date_parts = value_str.split(',')
@@ -360,7 +426,15 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
                 except ValueError:
                     continue
             else:
-                value = value_str
+                # String type - check for comma-separated values
+                if ',' in value_str:
+                    values = [v.strip() for v in value_str.split(',') if v.strip()]
+                    if values:
+                        or_conditions = [column_to_filter == v for v in values]
+                        query = query.filter(or_(*or_conditions))
+                    continue
+                else:
+                    value = value_str
                 
             query = query.filter(column_to_filter == value)
     return query
@@ -383,9 +457,13 @@ def get_all_pacjenci(
         search_term: str = None,
         filters: List[str] = None
     ) -> Page[Pacjent]:
-    
-    query = db.query(Pacjent)
-    query = search_pacjenci(query, search_term)
-    query = filter_pacjenci(query, filters)
-    query = sort_pacjenci(query, sort_by, sort_direction)
-    return paginate(query)
+    try:
+        query = db.query(Pacjent)
+        query = search_pacjenci(query, search_term)
+        query = filter_pacjenci(query, filters)
+        query = sort_pacjenci(query, sort_by, sort_direction)
+        logger.debug("Retrieving paginated pacjent list (sort_by=%s, sort_direction=%s, search_term=%s, filters=%s)", sort_by, sort_direction, search_term, filters)
+        return paginate(query)
+    except Exception as e:
+        logger.error("Error retrieving all pacjenci: %s", str(e), exc_info=True)
+        raise

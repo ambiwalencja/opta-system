@@ -11,7 +11,7 @@ SORTABLE_FIELDS = {
 
 FILTERING_FIELDS = {
     "Dzielnica": Pacjent.Dzielnica,
-    "Data_zgloszenia": Pacjent.Data_zgloszenia, # TODO: tutaj trzeba rozdzielić na lata i miesiące
+    "Data_zgloszenia": Pacjent.Data_zgloszenia,
     "Niebieska_karta": Pacjent.Niebieska_karta,
     "Zaproponowane_wsparcie": Pacjent.Zaproponowane_wsparcie
 }
