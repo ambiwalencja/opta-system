@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from datetime import datetime
-from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc
+from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc, or_
 from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
 from fastapi_pagination import Page
@@ -384,7 +384,11 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
         for f in filters:
             if ':' in f:
                 field, value = f.split(':', 1)
-                filter_params[field.strip()] = value.strip()
+                field = field.strip()
+                value = value.strip()
+                if not value:  # Skip if value is empty
+                    continue
+                filter_params[field] = value
 
     # FILTERING
     for param_name, value_str in filter_params.items():
@@ -422,7 +426,15 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
                 except ValueError:
                     continue
             else:
-                value = value_str
+                # String type - check for comma-separated values
+                if ',' in value_str:
+                    values = [v.strip() for v in value_str.split(',') if v.strip()]
+                    if values:
+                        or_conditions = [column_to_filter == v for v in values]
+                        query = query.filter(or_(*or_conditions))
+                    continue
+                else:
+                    value = value_str
                 
             query = query.filter(column_to_filter == value)
     return query
