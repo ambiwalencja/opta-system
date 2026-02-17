@@ -433,9 +433,13 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
                     # Try to parse as JSON array
                     parsed_value = json.loads(value_str)
                     if isinstance(parsed_value, list):
-                        # Check if the JSONB array contains all the specified values
-                        for val in parsed_value:
-                            query = query.filter(column_to_filter.contains([val]))
+                        if len(parsed_value) == 0:
+                            # Empty array - check for exact match with empty array
+                            query = query.filter(column_to_filter == [])
+                        else:
+                            # Check if the JSONB array contains all the specified values
+                            for val in parsed_value:
+                                query = query.filter(column_to_filter.contains([val]))
                     else:
                         # Single value - check if array contains it
                         query = query.filter(column_to_filter.contains([parsed_value]))
