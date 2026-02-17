@@ -48,7 +48,7 @@ def delete_pacjent(id_pacjenta: int = FastapiQuery(...), db: Session = Depends(g
 @router.get('/search', response_model=list[PacjentDisplay])
 def search_pacjenci(query: str, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     logger.debug("User %s searching pacjenci with query: %s", current_user.Username, query)
-    return pacjent_functions.search_pacjenci(db, query)
+    return pacjent_functions.search_pacjenci_alone(db, query)
 
 @router.get('/all', response_model=Page[PacjentDisplay])
 def show_pacjent_list(

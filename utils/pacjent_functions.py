@@ -490,3 +490,7 @@ def get_all_pacjenci(
     except Exception as e:
         logger.error("Error retrieving all pacjenci: %s", str(e), exc_info=True)
         raise
+
+def search_pacjenci_alone(db: Session, search_term: str):
+    query = db.query(Pacjent)
+    return search_pacjenci(query, search_term).all()
