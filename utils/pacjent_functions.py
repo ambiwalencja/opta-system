@@ -370,13 +370,15 @@ def delete_pacjent(db: Session, id_pacjenta: int):
 
 def search_pacjenci(query: Query, search_term: str = None):
     if search_term:
-        search_like = f"%{search_term}%"
-        query = query.filter(
-            (Pacjent.Imie.ilike(search_like)) | 
-            (Pacjent.Nazwisko.ilike(search_like)) |
-            (Pacjent.Email.ilike(search_like)) |
-            (Pacjent.Telefon.ilike(search_like))
-        )
+        terms_list = search_term.split()
+        for term in terms_list:
+            search_like = f"%{term}%"
+            query = query.filter(
+                (Pacjent.Imie.ilike(search_like)) | 
+                (Pacjent.Nazwisko.ilike(search_like)) |
+                (Pacjent.Email.ilike(search_like)) |
+                (Pacjent.Telefon.ilike(search_like))
+            )
     return query
 
 def filter_pacjenci(query: Query, filters: List[str] = None):
@@ -493,4 +495,4 @@ def get_all_pacjenci(
 
 def search_pacjenci_alone(db: Session, search_term: str):
     query = db.query(Pacjent)
-    return search_pacjenci(query, search_term).all()
+    return search_pacjenci(query, search_term).limit(5).all()
