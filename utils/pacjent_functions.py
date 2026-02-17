@@ -1,12 +1,14 @@
 from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc, or_
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional, Dict, Any, List
 import logging
+import json
 
 from auth.hashing import Hash
 from db_models.client_data import Pacjent, WizytaIndywidualna #, Grupa
@@ -424,6 +426,23 @@ def filter_pacjenci(query: Query, filters: List[str] = None):
                 try:
                     value = int(value_str)
                 except ValueError:
+                    continue
+            elif isinstance(column_to_filter.type, JSONB):
+                # JSONB type - handle array containment
+                try:
+                    # Try to parse as JSON array
+                    parsed_value = json.loads(value_str)
+                    if isinstance(parsed_value, list):
+                        # Check if the JSONB array contains all the specified values
+                        for val in parsed_value:
+                            query = query.filter(column_to_filter.contains([val]))
+                    else:
+                        # Single value - check if array contains it
+                        query = query.filter(column_to_filter.contains([parsed_value]))
+                    continue
+                except (json.JSONDecodeError, TypeError):
+                    # If JSON parsing fails, treat the entire value_str as a single element
+                    query = query.filter(column_to_filter.contains([value_str]))
                     continue
             else:
                 # String type - check for comma-separated values
