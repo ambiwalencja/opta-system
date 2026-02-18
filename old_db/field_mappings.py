@@ -294,3 +294,10 @@ SPOTKANIA_GRUPOWE_COLUMN_MAPPING = {
         'liczba_godzin': 'Liczba_godzin',
         'info_o_dzialaniach': 'Notatka_przebieg'
 }
+
+BAD_VALUES_MAP = {
+    'Email': ['xxx@wp.pl', 'xxxx@opta.pl', 'bbb@op.pl', 'aaa@op.pl', 'ccc@op.pl', 'xxx@opta.pl', 
+              'xxxxx@xxxx.pl', 'aaa@opta.pl', 'bbb@opta.pl', 'ccc@opta.pl', 
+              'ddd@opta.pl', 'eee@opta.pl'],
+    'Ulica': ['xxx', 'AAA', '-', 'XX', 'XXX', 'Z', 'x', 'ZZZ'],
+}
