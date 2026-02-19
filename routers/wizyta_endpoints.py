@@ -35,3 +35,4 @@ def update_wizyta_indywidualna(id_wizyty: int, request: WizytaIndywidualnaUpdate
 def delete_wizyta_indywidualna(id_wizyty: int, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     logger.info("User %s deleting wizyta: %d", current_user.Username, id_wizyty)
     return wizyta_functions.delete_wizyta(db, id_wizyty)
+
