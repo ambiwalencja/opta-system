@@ -102,7 +102,7 @@ def show_recent_detailed_wizyty_for_pacjent(id_pacjenta: Optional[int] = Fastapi
                                    limit: Optional[int] = FastapiQuery(None, description="Optional limit for recent wizyty"),
                                    db: Session = Depends(get_db), 
                                    current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
-    '''Show recent wizyty for the pacjent, with optional limit'''
-    logger.info("User %s viewing recent wizyty for pacjent with ID: %d and limit: %d", current_user.Username, id_pacjenta, limit)
+    '''Show detailed recent wizyty for the pacjent, with optional limit'''
+    logger.info("User %s viewing detailed recent wizyty for pacjent with ID: %d and limit: %d", current_user.Username, id_pacjenta, limit)
     wizyty = wizyta_functions.get_recent_wizyty_for_pacjent(db, id_pacjenta, limit)
     return wizyty

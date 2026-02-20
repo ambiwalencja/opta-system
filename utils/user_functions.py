@@ -40,7 +40,7 @@ def get_user_by_username(db: Session, username: str):
             logger.warning("User lookup failed: username '%s' not found", username)
             raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f'User with username {username} not found')
-        logger.info("User %s retrieved successfully", username)
+        logger.debug("User %s retrieved successfully", username)
         return user
     except HTTPException:
         raise
