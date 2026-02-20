@@ -17,7 +17,7 @@ logger = logging.getLogger("opta_system_logger")
 
 def core_save_wizyta(db: Session, wizyta_data: BaseModel):
     try:
-        logger.info("Creating wizyta for pacjent: %d", wizyta_data.id_pacjenta)
+        # logger.info("Creating wizyta for pacjent: %d", wizyta_data.id_pacjenta)
         validate_choice(db, "Typ_wizyty", wizyta_data.typ_wizyty)
         logger.debug("Typ_wizyty validation passed: %s", wizyta_data.typ_wizyty)
 
@@ -50,7 +50,7 @@ def core_save_wizyta(db: Session, wizyta_data: BaseModel):
 
 def create_wizyta(db: Session, wizyta_data: WizytaIndywidualnaCreate):
     try:
-        logger.info("create_wizyta called for pacjent: %d", wizyta_data.id_pacjenta)
+        # logger.info("create_wizyta called for pacjent: %d", wizyta_data.id_pacjenta)
         result = core_save_wizyta(db, wizyta_data)
         logger.info("Wizyta created successfully for pacjent: %d", wizyta_data.id_pacjenta)
         return result
@@ -62,7 +62,7 @@ def create_wizyta(db: Session, wizyta_data: WizytaIndywidualnaCreate):
 
 def import_wizyta(db: Session, wizyta_data: WizytaIndywidualnaImport):
     try:
-        logger.info("Importing wizyta for pacjent: %d", wizyta_data.id_pacjenta)
+        # logger.info("Importing wizyta for pacjent: %d", wizyta_data.id_pacjenta)
         result = core_save_wizyta(db, wizyta_data)
         logger.info("Wizyta imported successfully for pacjent: %d", wizyta_data.id_pacjenta)
         return result
@@ -74,7 +74,7 @@ def import_wizyta(db: Session, wizyta_data: WizytaIndywidualnaImport):
 
 def get_wizyta_by_id(db: Session, id_wizyty: int):
     try:
-        logger.info("Retrieving wizyta with ID: %d", id_wizyty)
+        # logger.info("Retrieving wizyta with ID: %d", id_wizyty)
         wizyta = db.query(WizytaIndywidualna).filter(WizytaIndywidualna.ID_wizyty == id_wizyty).first()
         if not wizyta:
             logger.warning("Wizyta not found with ID: %d", id_wizyty)
@@ -90,7 +90,6 @@ def get_wizyta_by_id(db: Session, id_wizyty: int):
 
 def update_wizyta(db: Session, id_wizyty: int, wizyta_data: BaseModel):
     try:
-        logger.info("Updating wizyta with ID: %d", id_wizyty)
         wizyta = get_wizyta_by_id(db, id_wizyty)
 
         if hasattr(wizyta_data, 'typ_wizyty') and wizyta_data.typ_wizyty is not None:
@@ -127,7 +126,7 @@ def update_wizyta(db: Session, id_wizyty: int, wizyta_data: BaseModel):
 
 def delete_wizyta(db: Session, id_wizyty: int):
     try:
-        logger.info("Deleting wizyta with ID: %d", id_wizyty)
+        # logger.info("Deleting wizyta with ID: %d", id_wizyty)
         wizyta = get_wizyta_by_id(db, id_wizyty)
         db.delete(wizyta)
         db.commit()
@@ -137,4 +136,42 @@ def delete_wizyta(db: Session, id_wizyty: int):
         raise
     except Exception as e:
         logger.error("Error deleting wizyta with ID %d: %s", id_wizyty, str(e), exc_info=True)
+        raise
+
+
+def get_recent_wizyty(db: Session, limit: int = None):
+    try:
+        wizyty = db.query(WizytaIndywidualna).order_by(WizytaIndywidualna.Data_wizyty.desc())
+        if limit is not None:
+            wizyty = wizyty.limit(limit)
+        wizyty = wizyty.all()
+        logger.debug("Recent wizyty retrieved with limit: %d", limit)
+        return wizyty
+    except Exception as e:
+        logger.error("Error retrieving recent wizyty: %s", str(e), exc_info=True)
+        raise
+
+def get_recent_wizyty_for_pacjent(db: Session, id_pacjenta: int, limit: int = None):
+    try:
+        wizyty = db.query(WizytaIndywidualna).filter(WizytaIndywidualna.ID_pacjenta == id_pacjenta).order_by(WizytaIndywidualna.Data_wizyty.desc())
+        if limit is not None:
+            wizyty = wizyty.limit(limit)
+        wizyty = wizyty.all()
+        logger.debug("Recent wizyty retrieved for pacjent with ID: %d and limit: %d", id_pacjenta, limit)
+        return wizyty
+    except Exception as e:
+        logger.error("Error retrieving recent wizyty for pacjent with ID %d and limit %d: %s", id_pacjenta, limit, str(e), exc_info=True)
+        raise
+
+def get_recent_wizyty_for_user(db: Session, id_uzytkownika: int, limit: int = None):
+    try:
+        logger.info("Retrieving recent wizyty for user with ID: %d and limit: %d", id_uzytkownika, limit)
+        wizyty = db.query(WizytaIndywidualna).filter(WizytaIndywidualna.ID_uzytkownika == id_uzytkownika).order_by(WizytaIndywidualna.Data_wizyty.desc())
+        if limit is not None:
+            wizyty = wizyty.limit(limit)
+        wizyty = wizyty.all()
+        logger.debug("Recent wizyty retrieved for user with ID: %d and limit: %d", id_uzytkownika, limit)
+        return wizyty
+    except Exception as e:
+        logger.error("Error retrieving recent wizyty for user with ID %d and limit %d: %s", id_uzytkownika, limit, str(e), exc_info=True)
         raise
