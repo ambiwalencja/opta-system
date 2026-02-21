@@ -1,7 +1,7 @@
 
 from fastapi import HTTPException, status
 from datetime import datetime
-# from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct
 # from sqlalchemy.orm import aliased
 from sqlalchemy.orm.session import Session
 import logging
@@ -174,4 +174,18 @@ def get_recent_wizyty_for_user(db: Session, id_uzytkownika: int, limit: int = No
         return wizyty
     except Exception as e:
         logger.error("Error retrieving recent wizyty for user with ID %d and limit %d: %s", id_uzytkownika, limit, str(e), exc_info=True)
+        raise
+
+def count_wizyty_for_pacjent(db: Session, id_pacjenta: int):
+    try:
+        wizyty_count = db.query(
+            func.count(WizytaIndywidualna.ID_wizyty),
+            WizytaIndywidualna.Typ_wizyty
+        ).filter(WizytaIndywidualna.ID_pacjenta == id_pacjenta
+        ).group_by(WizytaIndywidualna.Typ_wizyty).all()
+        logger.debug("Count of wizyty for pacjent with ID %d: %d", id_pacjenta, len(wizyty_count))
+        result = {typ: count for count, typ in wizyty_count}
+        return result
+    except Exception as e:
+        logger.error("Error counting wizyty for pacjent with ID %d: %s", id_pacjenta, str(e), exc_info=True)
         raise

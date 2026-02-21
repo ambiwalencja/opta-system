@@ -106,3 +106,12 @@ def show_recent_detailed_wizyty_for_pacjent(id_pacjenta: Optional[int] = Fastapi
     logger.info("User %s viewing detailed recent wizyty for pacjent with ID: %d and limit: %s", current_user.Username, id_pacjenta, limit)
     wizyty = wizyta_functions.get_recent_wizyty_for_pacjent(db, id_pacjenta, limit)
     return wizyty
+
+@router.get('/wizyty_counts_for_pacjent')
+def show_wizyty_counts_for_pacjent(id_pacjenta: int, 
+                                   db: Session = Depends(get_db), 
+                                   current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    '''Show counts of wizyty for the pacjent, grouped by typ_wizyty'''
+    logger.info("User %s viewing wizyty counts for pacjent with ID: %d", current_user.Username, id_pacjenta)
+    counts = wizyta_functions.count_wizyty_for_pacjent(db, id_pacjenta)
+    return counts
