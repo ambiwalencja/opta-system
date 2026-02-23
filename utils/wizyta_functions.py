@@ -93,11 +93,11 @@ def update_wizyta(db: Session, id_wizyty: int, wizyta_data: BaseModel):
         wizyta = get_wizyta_by_id(db, id_wizyty)
 
         if hasattr(wizyta_data, 'typ_wizyty') and wizyta_data.typ_wizyty is not None:
-            logger.debug("Validating Typ_wizyty: %s", wizyta_data.typ_wizyty)
+            # logger.debug("Validating Typ_wizyty: %s", wizyta_data.typ_wizyty)
             validate_choice(db, "Typ_wizyty", wizyta_data.typ_wizyty)
 
         data_dict = wizyta_data.model_dump(by_alias = True, exclude_unset = True)
-
+        logger.debug("Updating wizyta fields: %s", data_dict.keys())
         data_dict["Last_modified"] = datetime.now()
 
         for key, value in data_dict.items():
@@ -105,7 +105,7 @@ def update_wizyta(db: Session, id_wizyty: int, wizyta_data: BaseModel):
 
         db.commit()
         db.refresh(wizyta)
-        logger.info("Wizyta updated with ID: %d", id_wizyty)
+        logger.info("Wizyta with ID %d updated", id_wizyty)
 
         # If Data_wizyty or ID_pacjenta changed, update pacjent's Last_wizyta field
         if 'Data_wizyty' in data_dict or 'ID_pacjenta' in data_dict:
