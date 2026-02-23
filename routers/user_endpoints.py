@@ -133,8 +133,9 @@ def get_me(current_user: User = Depends(get_user_from_token("access_token"))):
     return current_user
 
 @router.post('/reset')
-def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
-# def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_current_user)):
+def reset_password_by_admin(request: UserSignIn, 
+                            db: Session = Depends(get_db), 
+                            current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     try:
         user = db.query(User).filter(User.Username == request.username).first()
         if not user:
@@ -155,6 +156,29 @@ def reset_password_for_user(request: UserSignIn, db: Session = Depends(get_db), 
         raise
     except Exception as e:
         logger.error("Error resetting password for user %s: %s", request.username, str(e), exc_info=True)
+        raise
+
+@router.post('/reset_password_user')
+def reset_password_by_user(old_password: str, 
+                           new_password: str,
+                            db: Session = Depends(get_db),
+                           current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    try:
+        user = db.query(User).filter(User.Username == current_user.Username).first()
+        if not Hash.verify(user.Password, old_password):
+            logger.warning("Password reset attempt with incorrect old password for user %s", current_user.Username)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f'Old password is incorrect')
+        user.Password = Hash.bcrypt(new_password)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        logger.info("Password reset for user %s", current_user.Username)
+        return True
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error resetting password for user %s: %s", current_user.Username, str(e), exc_info=True)
         raise
 
 @router.get('/display')
