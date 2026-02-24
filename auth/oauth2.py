@@ -6,7 +6,10 @@ from sqlalchemy.orm import Session
 from db.db_connect import get_db
 from utils import user_functions
 import os
+import logging
 from db_models.user_data import User
+
+logger = logging.getLogger("opta_system_logger")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login_form", )
 
@@ -40,24 +43,37 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     headers={"WWW-Authenticate": "Bearer"},
   )
   try:
+    logger.debug("Attempting to decode access token")
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     username: str = payload.get("username")
     if username is None:
+      logger.warning("Token validation failed: no username in payload")
       raise credentials_exception
-  except JWTError:
+    logger.debug("Token decoded successfully for user: %s", username)
+  except JWTError as e:
+    logger.warning("JWT validation error: %s", str(e))
     raise credentials_exception
+  
   user = user_functions.get_user_by_username(db, username=username)
   if user is None:
+    logger.warning("User not found in database: %s", username)
     raise credentials_exception
+  
+  logger.debug("User authenticated successfully: %s", username)
   return user
 
 # weryfikacja tokenu/tożsamości - ver 2 - obsługująca access i refresh token
 def get_user_from_token_raw(token: str, expected_scope: str, db: Session) -> User:
     try:
+        logger.debug("Validating token with expected scope: %s", expected_scope)
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        if payload.get("scope") != expected_scope:
+        token_scope = payload.get("scope")
+        if token_scope != expected_scope:
+            logger.warning("Invalid token scope. Expected: %s, Got: %s", expected_scope, token_scope)
             raise JWTError("Invalid token scope")
-    except JWTError:
+        logger.debug("Token scope validation passed")
+    except JWTError as e:
+        logger.warning("Token validation failed: %s", str(e))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
@@ -65,12 +81,16 @@ def get_user_from_token_raw(token: str, expected_scope: str, db: Session) -> Use
     
     username = payload.get("username")
     if not username:
+        logger.warning("Token validation failed: missing username in token")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing username in token")
     
+    logger.debug("Looking up user: %s", username)
     user = user_functions.get_user_by_username(db, username=username)
     if user is None:
+        logger.warning("User not found in database: %s", username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     
+    logger.debug("User authenticated successfully with %s token: %s", expected_scope, username)
     return user
 
 def get_user_from_token(expected_scope: str):

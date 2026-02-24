@@ -12,8 +12,11 @@ class PacjentCreateBasic(BaseModel):
     telefon: Optional[str] = Field(None, alias="Telefon") # Optional because of old_db missing values
     dzielnica: str = Field(..., alias="Dzielnica")
     
-    @field_validator('telefon')
+    @field_validator('telefon', mode='before')
     def validate_phone(cls, v):
+        # Convert empty strings to None
+        if isinstance(v, str) and v.strip() == '':
+            return None
         if v is None: # re.match operuje tylko na stringach, nie ogarnia None, więc musimy je wykluczyć
             return v
         if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry; 
@@ -22,8 +25,11 @@ class PacjentCreateBasic(BaseModel):
             raise ValueError('Invalid phone number format')
         return v
     
-    @field_validator('email')
+    @field_validator('email', mode='before')
     def validate_email(cls, v):
+        # Convert empty strings to None
+        if isinstance(v, str) and v.strip() == '':
+            return None
         if v is not None and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', v):
             raise ValueError('Invalid email format')
         return v
@@ -156,9 +162,12 @@ class PacjentUpdate(BaseModel):
                 )
         return self
     
-    @field_validator('telefon')
+    @field_validator('telefon', mode='before')
     def validate_phone(cls, v):
-        if v is None: # re.match operuje tylko na stringach, nie ogarnia None, więc musimy je wykluczyć
+        # Convert empty strings to None
+        if isinstance(v, str) and v.strip() == '':
+            return None
+        if v is None:
             return v
         if not re.match(r'^\d{9}$', v): # robimy bez kierunkowego, tylko cyfry; 
             # ogólny r'^\+?[1-9][0-9]{8,14}$'
@@ -166,8 +175,11 @@ class PacjentUpdate(BaseModel):
             raise ValueError('Invalid phone number format')
         return v
     
-    @field_validator('email')
+    @field_validator('email', mode='before')
     def validate_email(cls, v):
+        # Convert empty strings to None
+        if isinstance(v, str) and v.strip() == '':
+            return None
         if v is not None and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', v):
             raise ValueError('Invalid email format')
         return v

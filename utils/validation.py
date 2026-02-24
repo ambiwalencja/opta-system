@@ -79,3 +79,10 @@ def validate_choice_fields(db: Session, data: BaseModel): # zmieniłam z CreateP
     except Exception as e:
         logger.error("Error validating choice fields: %s", str(e), exc_info=True)
         raise
+
+def clean_empty(d):
+    """Recursively remove None and empty strings from a dictionary."""
+    if not isinstance(d, dict):
+        return d
+    logger.debug("Cleaning empty values from dictionary with %d keys", len(d))
+    return {key: value for key, value in d.items() if value is not None and value != ""}

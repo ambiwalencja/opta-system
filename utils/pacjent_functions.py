@@ -16,7 +16,7 @@ from schemas.pacjent_schemas import (
     BaseModel, PacjentCreateBasic, PacjentCreateForm, # PacjentDisplay, 
     PacjentUpdate, PacjentImport
 )
-from utils.validation import validate_choice, validate_choice_fields
+from utils.validation import validate_choice, validate_choice_fields, clean_empty
 from utils.safe_mappings import SORTABLE_FIELDS, FILTERING_FIELDS, SEARCHABLE_FIELDS
 
 logger = logging.getLogger("opta_system_logger")
@@ -163,8 +163,7 @@ def create_pacjent_basic(db: Session, pacjent_data: PacjentCreateBasic, id_uzytk
         # 2. Dynamic validation of all choice fields (here - only dzielnica)
         validate_choice_fields(db, pacjent_data)
         # 3. Convert to dict with DB column names
-        data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
-
+        data_dict = clean_empty(pacjent_data.model_dump(by_alias = True, exclude_unset = True))
         # 4. Add backend-generated fields
         data_dict["Created"] = datetime.now()
         data_dict["Last_modified"] = datetime.now()
@@ -240,7 +239,7 @@ def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel):
         validate_choice_fields(db, pacjent_data)
         
         # 3. Convert to dict with DB column names
-        data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
+        data_dict = clean_empty(pacjent_data.model_dump(by_alias = True, exclude_unset = True))
         
         # 4. Add backend-generated fields
         data_dict["Last_modified"] = datetime.now()
