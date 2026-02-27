@@ -152,13 +152,13 @@ def delete_grupa(db: Session, id_grupy: int):
 
 def get_all_groups(db: Session):
     try:
-        grupa_list = db.query(Grupa).all()
+        grupa_list = db.query(Grupa).order_by(Grupa.Data_rozpoczecia.desc()).all()
         logger.debug("Calculating uczestnicy count for each group")
         for grupa in grupa_list:
             uczestnicy_count = db.query(UczestnikGrupy).filter(
                 UczestnikGrupy.ID_grupy == grupa.ID_grupy
             ).count()
-            grupa.uczestnicy_count = uczestnicy_count
+            grupa.Uczestnicy_count = uczestnicy_count
         logger.info("Retrieved %d groups", len(grupa_list))
         return grupa_list
     except Exception as e:

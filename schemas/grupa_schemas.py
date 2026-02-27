@@ -32,7 +32,16 @@ class GrupaDisplay(GrupaCreate):
     rezultaty: Optional[str] = Field(None, alias="Rezultaty")
     prowadzacy: Optional[List[ProwadzacyDisplay]] = Field(None)
     uczestnicy_grupy: Optional[List[UczestnikGrupyDisplayShort]] = Field(None)
-    uczestnicy_count: int = Field(default=0)
+
+class GrupaDisplayOnList(BaseModel):
+    id_grupy: int = Field(..., alias="ID_grupy")
+    nazwa_grupy: str = Field(..., alias="Nazwa_grupy")
+    typ_grupy: str = Field(..., alias="Typ_grupy")
+    data_rozpoczecia: date = Field(..., alias="Data_rozpoczecia")
+    data_zakonczenia: Optional[date] = Field(None, alias="Data_zakonczenia")
+    liczba_spotkan: Optional[int] = Field(None, alias="Liczba_spotkan")
+    liczba_godzin: Optional[float] = Field(None, alias="Liczba_godzin")
+    uczestnicy_count: int = Field(default=0, alias="Uczestnicy_count")
 
 class GrupaUpdate(GrupaCreate):
     nazwa_grupy: Optional[str] = Field(None, alias="Nazwa_grupy")

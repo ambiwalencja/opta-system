@@ -45,7 +45,7 @@ def delete_spotkanie_grupowe(id_spotkania: int = FastapiQuery(...),
     return spot_grup_functions.delete_spotkanie_grupowe(db, id_spotkania)
 
 @router.get('/all', response_model=list[SpotkanieGrupoweDisplayShort])
-def show_all_spotkania(db: Session = Depends(get_db), 
+def show_all_spotkania(db: Session = Depends(get_db),
                        current_user: User = Depends(get_user_from_token("access_token"))):
     logger.info("User %s retrieving all spotkania grupowe", current_user.Username)
     return spot_grup_functions.get_all_spotkania_grupowe(db)
@@ -55,4 +55,4 @@ def show_all_spotkania_grup(id_grupy: int = FastapiQuery(...),
                             db: Session = Depends(get_db), 
                             current_user: User = Depends(get_user_from_token("access_token"))):
     logger.info("User %s retrieving all spotkania grupowe for grupa ID: %d", current_user.Username, id_grupy)
-    return spot_grup_functions.get_spotkania_grupowe_for_grupa(db, id_grupy)
+    return spot_grup_functions.get_all_spotkania_grupowe(db, id_grupy)

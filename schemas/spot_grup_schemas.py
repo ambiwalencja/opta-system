@@ -29,6 +29,11 @@ class SpotkanieGrupoweDisplayShort(BaseModel):
     liczba_godzin: Optional[float] = Field(None, alias="Liczba_godzin")
     obecni_uczestnicy_count: Optional[int] = Field(None, alias="Obecni_uczestnicy_count")
 
+    model_config = {
+            "from_attributes": True,
+            "populate_by_name": True  # Allows using either 'nazwa_grupy' or 'Nazwa_grupy'
+        }
+
 class SpotkanieGrupoweUpdate(SpotkanieGrupoweCreate):
     id_grupy: Optional[int] = Field(None, alias="ID_grupy")
     data_spotkania: Optional[date] = Field(None, alias="Data_spotkania")
