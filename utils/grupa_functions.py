@@ -150,6 +150,20 @@ def delete_grupa(db: Session, id_grupy: int):
         logger.error("Error deleting grupa with ID %d: %s", id_grupy, str(e), exc_info=True)
         raise
 
+def get_all_groups(db: Session):
+    try:
+        grupa_list = db.query(Grupa).all()
+        logger.debug("Calculating uczestnicy count for each group")
+        for grupa in grupa_list:
+            uczestnicy_count = db.query(UczestnikGrupy).filter(
+                UczestnikGrupy.ID_grupy == grupa.ID_grupy
+            ).count()
+            grupa.uczestnicy_count = uczestnicy_count
+        logger.info("Retrieved %d groups", len(grupa_list))
+        return grupa_list
+    except Exception as e:
+        logger.error("Error retrieving groups: %s", str(e), exc_info=True)
+        raise
 
 def check_uczestnik_grupy_duplicates(db: Session, id_grupy: int, id_pacjenta: int):
     try:

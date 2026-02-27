@@ -41,6 +41,13 @@ def delete_grupa(id_grupy: int = FastapiQuery(...), db: Session = Depends(get_db
     logger.info("User %s deleting grupa with ID: %d", current_user.Username, id_grupy)
     return grupa_functions.delete_grupa(db, id_grupy)
 
+@router.get('/all', response_model=list[GrupaDisplay])
+def show_all_groups(db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+    logger.info("User %s retrieving all groups", current_user.Username)
+    return grupa_functions.get_all_groups(db)
+
+
+
 @router.post('/uczestnik/create', response_model=UczestnikGrupyDisplay)
 def create_uczestnik_grupy(request: UczestnikGrupyCreate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     logger.info("User %s creating uczestnik for grupa ID: %d, pacjent ID: %d", current_user.Username, request.id_grupy, request.id_pacjenta)

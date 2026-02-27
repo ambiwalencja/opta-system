@@ -82,3 +82,21 @@ def delete_spotkanie_grupowe(db: Session, id_spotkania: int):
         logger.error("Error deleting spotkanie grupowe with ID %d: %s", id_spotkania, str(e), exc_info=True)
         raise
 
+def get_all_spotkania_grupowe(db: Session):
+    try:
+        spotkania = db.query(SpotkanieGrupowe).all()
+        # TODO: tutaj trzeba będzie zrobić joina z grupą i uczestnikami?
+        logger.info("All spotkania grupowe retrieved successfully, count: %d", len(spotkania))
+        return spotkania
+    except Exception as e:
+        logger.error("Error retrieving all spotkania grupowe: %s", str(e), exc_info=True)
+        raise
+
+def get_spotkania_grupowe_for_grupa(db: Session, id_grupy: int):
+    try:
+        spotkania = db.query(SpotkanieGrupowe).filter(SpotkanieGrupowe.ID_grupy == id_grupy).all()
+        logger.debug("Spotkania grupowe for grupa ID %d retrieved successfully, count: %d", id_grupy, len(spotkania))
+        return spotkania
+    except Exception as e:
+        logger.error("Error retrieving spotkania grupowe for grupa ID %d: %s", id_grupy, str(e), exc_info=True)
+        raise
