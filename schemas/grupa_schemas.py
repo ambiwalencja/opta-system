@@ -18,7 +18,7 @@ class GrupaCreate(BaseModel):
         validate_by_alias = True
 
 class ProwadzacyDisplay(BaseModel):
-    id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
+    # id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
     full_name: str = Field(..., alias="Full_name")
 
 class UczestnikGrupyDisplayShort(BaseModel):
@@ -32,6 +32,16 @@ class GrupaDisplay(GrupaCreate):
     rezultaty: Optional[str] = Field(None, alias="Rezultaty")
     prowadzacy: Optional[List[ProwadzacyDisplay]] = Field(None)
     uczestnicy_grupy: Optional[List[UczestnikGrupyDisplayShort]] = Field(None)
+
+class GrupaDisplayOnList(BaseModel):
+    id_grupy: int = Field(..., alias="ID_grupy")
+    nazwa_grupy: str = Field(..., alias="Nazwa_grupy")
+    typ_grupy: str = Field(..., alias="Typ_grupy")
+    data_rozpoczecia: date = Field(..., alias="Data_rozpoczecia")
+    data_zakonczenia: Optional[date] = Field(None, alias="Data_zakonczenia")
+    liczba_spotkan: Optional[int] = Field(None, alias="Liczba_spotkan")
+    liczba_godzin: Optional[float] = Field(None, alias="Liczba_godzin")
+    uczestnicy_count: int = Field(default=0, alias="Uczestnicy_count")
 
 class GrupaUpdate(GrupaCreate):
     nazwa_grupy: Optional[str] = Field(None, alias="Nazwa_grupy")

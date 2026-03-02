@@ -7,7 +7,7 @@ from auth.oauth2 import get_user_from_token
 from db.db_connect import get_db
 # from db_models.client_data import Pacjent
 from schemas.pacjent_schemas import PacjentDisplay, PacjentWithWizytaDisplay
-from schemas.wizyta_schemas import WizytaIndywidualnaDisplay, WizytaIndywidualnaDisplayDetails
+from schemas.wizyta_schemas import WizytaIndywidualnaDisplay
 from schemas.grupa_schemas import GrupaDisplay
 from schemas.user_schemas import UserSignIn, UserDisplay
 from utils import pacjent_functions, user_functions, grupa_functions, wizyta_functions
@@ -87,31 +87,3 @@ def show_my_recent_wizyty(limit: Optional[int] = FastapiQuery(10, description="O
     wizyty = wizyta_functions.get_recent_wizyty_for_user(db, current_user.ID_uzytkownika, limit)
     return wizyty
 
-@router.get('/recent_wizyty_for_pacjent', response_model=list[WizytaIndywidualnaDisplay]    )
-def show_recent_wizyty_for_pacjent(id_pacjenta: Optional[int] = FastapiQuery(None, description="ID of the pacjent to show wizyty for"), 
-                                   limit: Optional[int] = FastapiQuery(None, description="Optional limit for recent wizyty"),
-                                   db: Session = Depends(get_db), 
-                                   current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
-    '''Show recent wizyty for the pacjent, with optional limit'''
-    logger.info("User %s viewing recent wizyty for pacjent with ID: %d and limit: %s", current_user.Username, id_pacjenta, limit)
-    wizyty = wizyta_functions.get_recent_wizyty_for_pacjent(db, id_pacjenta, limit)
-    return wizyty
-
-@router.get('/detailed_wizyty_for_pacjent', response_model=list[WizytaIndywidualnaDisplayDetails])
-def show_recent_detailed_wizyty_for_pacjent(id_pacjenta: Optional[int] = FastapiQuery(None, description="ID of the pacjent to show wizyty for"), 
-                                   limit: Optional[int] = FastapiQuery(None, description="Optional limit for recent wizyty"),
-                                   db: Session = Depends(get_db), 
-                                   current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
-    '''Show detailed recent wizyty for the pacjent, with optional limit'''
-    logger.info("User %s viewing detailed recent wizyty for pacjent with ID: %d and limit: %s", current_user.Username, id_pacjenta, limit)
-    wizyty = wizyta_functions.get_recent_wizyty_for_pacjent(db, id_pacjenta, limit)
-    return wizyty
-
-@router.get('/wizyty_counts_for_pacjent')
-def show_wizyty_counts_for_pacjent(id_pacjenta: int, 
-                                   db: Session = Depends(get_db), 
-                                   current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
-    '''Show counts of wizyty for the pacjent, grouped by typ_wizyty'''
-    logger.info("User %s viewing wizyty counts for pacjent with ID: %d", current_user.Username, id_pacjenta)
-    counts = wizyta_functions.count_wizyty_for_pacjent(db, id_pacjenta)
-    return counts

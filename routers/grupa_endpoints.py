@@ -6,7 +6,7 @@ from db.db_connect import get_db
 from auth.oauth2 import get_user_from_token
 from schemas.pacjent_schemas import PacjentDisplay
 # from schemas.wizyta_schemas import WizytaIndywidualnaCreate, WizytaIndywidualnaDisplay
-from schemas.grupa_schemas import (GrupaCreate, GrupaDisplay, 
+from schemas.grupa_schemas import (GrupaCreate, GrupaDisplay, GrupaDisplayOnList, 
                                    GrupaUpdate, UczestnikGrupyCreate,
                                    UczestnikGrupyDisplay, UczestnikGrupyUpdate)
 # from db_models.client_data import Pacjent
@@ -40,6 +40,13 @@ def update_grupa(id_grupy: int = FastapiQuery(...), request: GrupaUpdate = None,
 def delete_grupa(id_grupy: int = FastapiQuery(...), db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
     logger.info("User %s deleting grupa with ID: %d", current_user.Username, id_grupy)
     return grupa_functions.delete_grupa(db, id_grupy)
+
+@router.get('/all', response_model=list[GrupaDisplayOnList])
+def show_all_groups(db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+    logger.info("User %s retrieving all groups", current_user.Username)
+    return grupa_functions.get_all_groups(db)
+
+
 
 @router.post('/uczestnik/create', response_model=UczestnikGrupyDisplay)
 def create_uczestnik_grupy(request: UczestnikGrupyCreate, db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):

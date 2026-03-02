@@ -1,9 +1,11 @@
 from fastapi import HTTPException, status
 from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy.orm.session import Session
+from typing import Optional
 import logging
 
-from db_models.client_data import SpotkanieGrupowe, UczestnikGrupy
+from db_models.client_data import Grupa, SpotkanieGrupowe, UczestnikGrupy, obecni_uczestnicy_spotkania
 from schemas.spot_grup_schemas import  SpotkanieGrupoweCreate, SpotkanieGrupoweUpdate
 
 logger = logging.getLogger("opta_system_logger")
@@ -80,5 +82,33 @@ def delete_spotkanie_grupowe(db: Session, id_spotkania: int):
         raise
     except Exception as e:
         logger.error("Error deleting spotkanie grupowe with ID %d: %s", id_spotkania, str(e), exc_info=True)
+        raise
+
+def get_all_spotkania_grupowe(db: Session, id_grupy: Optional[int] = None):
+    try:
+        query = (
+            db.query(
+                SpotkanieGrupowe,
+                func.count(obecni_uczestnicy_spotkania.c.ID_uczestnika_grupy),
+                Grupa.Nazwa_grupy
+                )
+            .outerjoin(obecni_uczestnicy_spotkania) # We use an outer join so that if a meeting has zero participants, it still shows up in your list with a count of 0.
+            .outerjoin(Grupa)
+            .group_by(SpotkanieGrupowe.ID_spotkania, Grupa.Nazwa_grupy)
+        ) #result: list of tuples (SpotkanieGrupowe, count_obecni_uczestnicy) because it's a group_by result
+        
+        if id_grupy:
+            query = query.filter(SpotkanieGrupowe.ID_grupy == id_grupy)
+        spotkania = query.all()
+        logger.info("All spotkania grupowe retrieved successfully, count: %d", len(spotkania))
+        results = []
+        for spotkanie, count, nazwa_grupy in spotkania:
+            logger.debug("Spotkanie ID: %d, Obecni uczestnicy count: %d, Nazwa grupy: %s", spotkanie.ID_spotkania, count, nazwa_grupy)
+            spotkanie.Obecni_uczestnicy_count = count # new parameter added to SpotkanieGrupowe model
+            spotkanie.Nazwa_grupy = nazwa_grupy # new parameter added to SpotkanieGrupowe model
+            results.append(spotkanie)
+        return results
+    except Exception as e:
+        logger.error("Error retrieving all spotkania grupowe: %s", str(e), exc_info=True)
         raise
 
