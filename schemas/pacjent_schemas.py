@@ -216,7 +216,7 @@ class PacjentWithWizytaDisplay(BaseModel):
     nazwisko: str = Field(..., alias="Nazwisko")
     data_zgloszenia: date = Field(..., alias="Data_zgloszenia")
     email: Optional[str] = Field(None, alias="Email")
-    telefon: str = Field(..., alias="Telefon")
+    telefon: Optional[str] = Field(None, alias="Telefon")
     dzielnica: str = Field(..., alias="Dzielnica")
     # ulica: Optional[str] = Field(None, alias="Ulica")
     # nr_domu: Optional[str] = Field(None, alias="Nr_domu")
