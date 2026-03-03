@@ -1,21 +1,24 @@
 from fastapi import HTTPException, status
-from datetime import datetime
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi.responses import StreamingResponse
+
 from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc, or_
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
-from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
-from typing import Optional, Dict, Any, List
+
+from typing import Optional, List
 import logging
 import json
+from io import BytesIO
+from datetime import datetime
 
-from auth.hashing import Hash
 from db_models.client_data import Pacjent, WizytaIndywidualna #, Grupa
 from schemas.pacjent_schemas import (
     BaseModel, PacjentCreateBasic, PacjentCreateForm, # PacjentDisplay, 
-    PacjentUpdate, PacjentImport
-)
+    PacjentUpdate, PacjentImport)
+
 from utils.validation import validate_choice, validate_choice_fields, clean_empty
 from utils.safe_mappings import SORTABLE_FIELDS, FILTERING_FIELDS, SEARCHABLE_FIELDS
 
@@ -48,7 +51,12 @@ def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "message": f'Client with phone number {pacjent_data.telefon} already exists',
-                        "duplicate_id": duplicate.ID_pacjenta
+                        "duplicate_id": duplicate.ID_pacjenta,
+                        "duplicate_name": duplicate.Imie,
+                        "duplicate_surname": duplicate.Nazwisko,
+                        "duplicate_dzielnica": duplicate.Dzielnica,
+                        "duplicate_phone": duplicate.Telefon,
+                        "duplicate_email": duplicate.Email
                     }
                 )
         
@@ -61,7 +69,12 @@ def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "message": f'Client with email {pacjent_data.email} already exists',
-                        "duplicate_id": duplicate.ID_pacjenta
+                        "duplicate_id": duplicate.ID_pacjenta,
+                        "duplicate_name": duplicate.Imie,
+                        "duplicate_surname": duplicate.Nazwisko,
+                        "duplicate_dzielnica": duplicate.Dzielnica,
+                        "duplicate_phone": duplicate.Telefon,
+                        "duplicate_email": duplicate.Email
                     }
                 )
         
@@ -80,7 +93,12 @@ def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
                     "message": f'Client with name {pacjent_data.imie} {pacjent_data.nazwisko} and the same address already exists',
-                    "duplicate_id": duplicate.ID_pacjenta
+                    "duplicate_id": duplicate.ID_pacjenta,
+                    "duplicate_name": duplicate.Imie,
+                    "duplicate_surname": duplicate.Nazwisko,
+                    "duplicate_dzielnica": duplicate.Dzielnica,
+                    "duplicate_phone": duplicate.Telefon,
+                    "duplicate_email": duplicate.Email
                 }
             )
         logger.debug("No duplicates found for pacjent: %s %s", pacjent_data.imie, pacjent_data.nazwisko)
@@ -495,3 +513,4 @@ def get_all_pacjenci(
 def search_pacjenci_alone(db: Session, search_term: str):
     query = db.query(Pacjent)
     return search_pacjenci(query, search_term).limit(5).all()
+
