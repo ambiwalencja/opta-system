@@ -185,32 +185,47 @@ def reset_password_by_user(old_password: str,
 def display_users(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     try:
         if current_user.Role != 'admin':
-            logger.warning("Unauthorized users display attempt by user: %s", current_user.Username)
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                detail=f'You are not an admin')
-        logger.info("User %s (admin) displaying user list", current_user.Username)
-        data = db.query(User.ID_uzytkownika, 
-                        User.Username, 
-                        User.Full_name, 
-                        User.Specjalista, 
-                        User.Role, 
-                        User.Created, 
-                        User.Last_login, 
-                        User.Status).all()
-        response_data = []
-        for row in data:
-            response_data.append({
-                'ID': row[0],
-                'Username': row[1],
-                'Full name': row[2],
-                'Specjalista': row[3],
-                'Role': row[4],
-                'Created': user_functions.format_datetime(row[5]),
-                'Last login': user_functions.format_datetime(row[6]),
-                'Status': row[7]
-            })
-        logger.info("User list displayed by admin %s (%d users)", current_user.Username, len(data))
-        return response_data
+            logger.info("Users display attempt by user: %s", current_user.Username)
+            data = db.query(User.ID_uzytkownika, 
+                            User.Username, 
+                            User.Full_name, 
+                            User.Specjalista, 
+                            User.Status).filter(User.Status == 'active').all()
+            response_data = []
+            for row in data:
+                response_data.append({
+                    'ID': row[0],
+                    'Username': row[1],
+                    'Full name': row[2],
+                    'Specjalista': row[3],
+                    'Active': row[4]
+                })
+            logger.info("User list displayed by user %s (%d users)", current_user.Username, len(data))
+            return response_data
+        else:
+            logger.info("User %s (admin) displaying user list", current_user.Username)
+            data = db.query(User.ID_uzytkownika, 
+                            User.Username, 
+                            User.Full_name, 
+                            User.Specjalista, 
+                            User.Role, 
+                            User.Created, 
+                            User.Last_login, 
+                            User.Status).all()
+            response_data = []
+            for row in data:
+                response_data.append({
+                    'ID': row[0],
+                    'Username': row[1],
+                    'Full name': row[2],
+                    'Specjalista': row[3],
+                    'Role': row[4],
+                    'Created': user_functions.format_datetime(row[5]),
+                    'Last login': user_functions.format_datetime(row[6]),
+                    'Status': row[7]
+                })
+            logger.info("User list displayed by admin %s (%d users)", current_user.Username, len(data))
+            return response_data
     except HTTPException:
         raise
     except Exception as e:
