@@ -109,6 +109,14 @@ def correct_multiple_choice_other_values(df: pd.DataFrame, col: str, col_detail:
     ]
     return df
 
+def remove_bad_values(df: pd.DataFrame):
+    """Remove bad values from a column by setting them to None."""
+    bad_values_dict = field_mappings.BAD_VALUES_MAP
+    for col, bad_values in bad_values_dict.items():
+        if col in df.columns:
+            df[col] = df[col].apply(lambda x: None if x in bad_values else x)
+    return df
+
 def transform_table_pacjenci(df: pd.DataFrame, db: Session):
     # Delete unnecessary columns
     columns_to_drop = ['id_pacjenta', 'data1konsultacji', 'sadowe', 'postępowanie'] # te dwie ostatnie to stare zmienne

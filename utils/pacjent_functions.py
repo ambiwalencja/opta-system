@@ -1,22 +1,25 @@
 from fastapi import HTTPException, status
-from datetime import datetime
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi.responses import StreamingResponse
+
 from sqlalchemy import Column, func, distinct, Date, Boolean, Integer, desc, or_
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import aliased, Query
 from sqlalchemy.orm.session import Session
-from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
-from typing import Optional, Dict, Any, List
+
+from typing import Optional, List
 import logging
 import json
+from io import BytesIO
+from datetime import datetime
 
-from auth.hashing import Hash
 from db_models.client_data import Pacjent, WizytaIndywidualna #, Grupa
 from schemas.pacjent_schemas import (
     BaseModel, PacjentCreateBasic, PacjentCreateForm, # PacjentDisplay, 
-    PacjentUpdate, PacjentImport
-)
-from utils.validation import validate_choice, validate_choice_fields
+    PacjentUpdate, PacjentImport)
+
+from utils.validation import validate_choice, validate_choice_fields, clean_empty
 from utils.safe_mappings import SORTABLE_FIELDS, FILTERING_FIELDS, SEARCHABLE_FIELDS
 
 logger = logging.getLogger("opta_system_logger")
@@ -48,7 +51,12 @@ def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "message": f'Client with phone number {pacjent_data.telefon} already exists',
-                        "duplicate_id": duplicate.ID_pacjenta
+                        "duplicate_id": duplicate.ID_pacjenta,
+                        "duplicate_name": duplicate.Imie,
+                        "duplicate_surname": duplicate.Nazwisko,
+                        "duplicate_dzielnica": duplicate.Dzielnica,
+                        "duplicate_phone": duplicate.Telefon,
+                        "duplicate_email": duplicate.Email
                     }
                 )
         
@@ -61,7 +69,12 @@ def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "message": f'Client with email {pacjent_data.email} already exists',
-                        "duplicate_id": duplicate.ID_pacjenta
+                        "duplicate_id": duplicate.ID_pacjenta,
+                        "duplicate_name": duplicate.Imie,
+                        "duplicate_surname": duplicate.Nazwisko,
+                        "duplicate_dzielnica": duplicate.Dzielnica,
+                        "duplicate_phone": duplicate.Telefon,
+                        "duplicate_email": duplicate.Email
                     }
                 )
         
@@ -80,7 +93,12 @@ def check_pacjent_duplicates(db: Session, pacjent_data: PacjentCreateBasic):
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
                     "message": f'Client with name {pacjent_data.imie} {pacjent_data.nazwisko} and the same address already exists',
-                    "duplicate_id": duplicate.ID_pacjenta
+                    "duplicate_id": duplicate.ID_pacjenta,
+                    "duplicate_name": duplicate.Imie,
+                    "duplicate_surname": duplicate.Nazwisko,
+                    "duplicate_dzielnica": duplicate.Dzielnica,
+                    "duplicate_phone": duplicate.Telefon,
+                    "duplicate_email": duplicate.Email
                 }
             )
         logger.debug("No duplicates found for pacjent: %s %s", pacjent_data.imie, pacjent_data.nazwisko)
@@ -163,8 +181,7 @@ def create_pacjent_basic(db: Session, pacjent_data: PacjentCreateBasic, id_uzytk
         # 2. Dynamic validation of all choice fields (here - only dzielnica)
         validate_choice_fields(db, pacjent_data)
         # 3. Convert to dict with DB column names
-        data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
-
+        data_dict = clean_empty(pacjent_data.model_dump(by_alias = True, exclude_unset = True))
         # 4. Add backend-generated fields
         data_dict["Created"] = datetime.now()
         data_dict["Last_modified"] = datetime.now()
@@ -240,7 +257,7 @@ def core_update_pacjent(db: Session, id_pacjenta: int, pacjent_data: BaseModel):
         validate_choice_fields(db, pacjent_data)
         
         # 3. Convert to dict with DB column names
-        data_dict = pacjent_data.model_dump(by_alias = True, exclude_unset = True)
+        data_dict = clean_empty(pacjent_data.model_dump(by_alias = True, exclude_unset = True))
         
         # 4. Add backend-generated fields
         data_dict["Last_modified"] = datetime.now()
@@ -370,13 +387,15 @@ def delete_pacjent(db: Session, id_pacjenta: int):
 
 def search_pacjenci(query: Query, search_term: str = None):
     if search_term:
-        search_like = f"%{search_term}%"
-        query = query.filter(
-            (Pacjent.Imie.ilike(search_like)) | 
-            (Pacjent.Nazwisko.ilike(search_like)) |
-            (Pacjent.Email.ilike(search_like)) |
-            (Pacjent.Telefon.ilike(search_like))
-        )
+        terms_list = search_term.split()
+        for term in terms_list:
+            search_like = f"%{term}%"
+            query = query.filter(
+                (Pacjent.Imie.ilike(search_like)) | 
+                (Pacjent.Nazwisko.ilike(search_like)) |
+                (Pacjent.Email.ilike(search_like)) |
+                (Pacjent.Telefon.ilike(search_like))
+            )
     return query
 
 def filter_pacjenci(query: Query, filters: List[str] = None):
@@ -490,3 +509,8 @@ def get_all_pacjenci(
     except Exception as e:
         logger.error("Error retrieving all pacjenci: %s", str(e), exc_info=True)
         raise
+
+def search_pacjenci_alone(db: Session, search_term: str):
+    query = db.query(Pacjent)
+    return search_pacjenci(query, search_term).limit(5).all()
+
