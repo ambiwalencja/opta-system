@@ -5,7 +5,7 @@ from sqlalchemy.orm.session import Session
 from typing import Optional
 import logging
 
-from db_models.client_data import Grupa, SpotkanieGrupowe, UczestnikGrupy, obecni_uczestnicy_spotkania
+from db_models.client_data import Grupa, SpotkanieGrupowe, UczestnikGrupy, obecni_uczestnicy_spotkania, Pacjent
 from schemas.spot_grup_schemas import  SpotkanieGrupoweCreate, SpotkanieGrupoweUpdate
 
 logger = logging.getLogger("opta_system_logger")
@@ -22,6 +22,27 @@ def get_spotkanie_by_id(db: Session, id_spotkania: int):
         spotkanie.Obecni_uczestnicy_count = obecni_count
         grupa = db.query(Grupa).filter(Grupa.ID_grupy == spotkanie.ID_grupy).first()
         spotkanie.Nazwa_grupy = grupa.Nazwa_grupy
+        # Get participants with their pacjent details
+        obecni_uczestnicy_list = db.query(
+            UczestnikGrupy.ID_uczestnika_grupy,
+            Pacjent.ID_pacjenta,
+            Pacjent.Imie,
+            Pacjent.Nazwisko
+        ).join(Pacjent).join(
+            obecni_uczestnicy_spotkania,
+            UczestnikGrupy.ID_uczestnika_grupy == obecni_uczestnicy_spotkania.c.ID_uczestnika_grupy
+        ).filter(
+            obecni_uczestnicy_spotkania.c.ID_spotkania == id_spotkania
+        ).all()
+        spotkanie.Obecni_uczestnicy = [
+            {
+                "ID_uczestnika_grupy": id_uczestnika,
+                "ID_pacjenta": id_pacjenta,
+                "Imie": imie,
+                "Nazwisko": nazwisko
+            }
+            for id_uczestnika, id_pacjenta, imie, nazwisko in obecni_uczestnicy_list
+        ]
         logger.debug("Spotkanie grupowe with ID %d retrieved successfully", id_spotkania)
         return spotkanie
     except HTTPException:
