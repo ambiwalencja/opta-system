@@ -12,11 +12,16 @@ logger = logging.getLogger("opta_system_logger")
 
 def get_spotkanie_by_id(db: Session, id_spotkania: int):
     try:
+        
         spotkanie = db.query(SpotkanieGrupowe).filter(SpotkanieGrupowe.ID_spotkania == id_spotkania).first()
         if not spotkanie:
             logger.warning("Spotkanie grupowe with ID %d not found", id_spotkania)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Spotkanie grupowe with ID {id_spotkania} not found")
+        obecni_count = db.query(func.count(obecni_uczestnicy_spotkania.c.ID_uczestnika_grupy)).filter(obecni_uczestnicy_spotkania.c.ID_spotkania == id_spotkania).scalar()
+        spotkanie.Obecni_uczestnicy_count = obecni_count
+        grupa = db.query(Grupa).filter(Grupa.ID_grupy == spotkanie.ID_grupy).first()
+        spotkanie.Nazwa_grupy = grupa.Nazwa_grupy
         logger.debug("Spotkanie grupowe with ID %d retrieved successfully", id_spotkania)
         return spotkanie
     except HTTPException:
