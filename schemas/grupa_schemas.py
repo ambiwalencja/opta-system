@@ -90,3 +90,5 @@ class UczestnikGrupyDisplay(UczestnikGrupyCreate):
 class UczestnikGrupyUpdate(BaseModel):
     id_grupy: Optional[int] = Field(None, alias="ID_grupy")
     id_pacjenta: Optional[int] = Field(None, alias="ID_pacjenta")
+    ukonczenie: Optional[bool] = Field(None, alias="Ukonczenie")
+    rezultat: Optional[str] = Field(None, alias="Rezultat")
