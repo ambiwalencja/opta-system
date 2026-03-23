@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 import os, uuid
 
 from db import db_connect
-# from db_models import user_data, client_data, config
+# Import all models to register them with Base - must happen before create_all()
+import db_models  # noqa: F401 (imported for side effects)
 from routers import (
     user_endpoints, pacjent_endpoints, grupa_endpoints, wizyta_endpoints,
     config_endpoints, frontend_specific_endpoints, spot_grup_endpoints,
