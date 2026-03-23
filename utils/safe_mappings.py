@@ -13,7 +13,9 @@ FILTERING_FIELDS = {
     "Dzielnica": Pacjent.Dzielnica,
     "Data_zgloszenia": Pacjent.Data_zgloszenia,
     "Niebieska_karta": Pacjent.Niebieska_karta,
-    "Zaproponowane_wsparcie": Pacjent.Zaproponowane_wsparcie
+    "Zaproponowane_wsparcie": Pacjent.Zaproponowane_wsparcie,
+    "ID_uzytkownika": Pacjent.ID_uzytkownika,
+    "Status_pacjenta": Pacjent.Status_pacjenta
 }
 
 SEARCHABLE_FIELDS = [Pacjent.Imie, Pacjent.Nazwisko, Pacjent.Email, Pacjent.Telefon]
