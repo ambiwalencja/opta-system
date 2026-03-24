@@ -66,3 +66,12 @@ def show_pacjent_list(
     
     logger.debug("User %s retrieving pacjent list (sort_by=%s, sort_direction=%s, search_term=%s)", current_user.Username, sort_by, sort_direction, search_term)
     return pacjent_functions.get_all_pacjenci(db, sort_by, sort_direction, search_term, filters)
+
+@router.get("/form_pdf")
+async def get_pdf(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token("access_token")),
+    id_pacjenta: int = FastapiQuery(...)
+    ):
+    logger.debug("User %s requesting a pdf of pacjent with id %d)", current_user.Username, id_pacjenta)
+    return pacjent_functions.get_pacjent_pdf(db, id_pacjenta)

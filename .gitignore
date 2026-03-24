@@ -6,6 +6,7 @@ __pycache__
 *.json
 archive/
 test.py
+test2.py
 *.csv
 .DS_Store
 .DS_Store?
