@@ -11,6 +11,7 @@ from db_models.client_data import (
     pacjent_duplicates,
     prowadzacy_grupy,
     obecni_uczestnicy_spotkania
+
 )
 from db_models.config import PossibleValues
 
@@ -31,5 +32,5 @@ __all__ = [
     # Association tables
     'pacjent_duplicates',
     'prowadzacy_grupy',
-    'obecni_uczestnicy_spotkania',
+    'obecni_uczestnicy_spotkania'
 ]

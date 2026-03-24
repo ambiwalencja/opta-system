@@ -55,62 +55,81 @@ def create_spotkanie_grupowe(db: Session, spotkanie_data: SpotkanieGrupoweCreate
     try:
         logger.info("Creating new spotkanie grupowe for user ID: %d", id_uzytkownika)
         data_dict = spotkanie_data.model_dump(by_alias=True, exclude={'obecni_uczestnicy'})
-        data_dict["Created"] = datetime.now()
-        data_dict["Last_modified"] = datetime.now()
-        data_dict["ID_uzytkownika"] = id_uzytkownika
+        data_dict.update({
+            "Created": datetime.now(),
+            "Last_modified": datetime.now(),
+            "ID_uzytkownika": id_uzytkownika
+        })
+        
         new_spotkanie = SpotkanieGrupowe(**data_dict)
         
+        id_list = spotkanie_data.obecni_uczestnicy or []
+        if id_list:
+            # 1. Fetch all matching participants in ONE query
+            participants = db.query(UczestnikGrupy).filter(
+                UczestnikGrupy.ID_uczestnika_grupy.in_(id_list),
+                UczestnikGrupy.ID_grupy == spotkanie_data.id_grupy
+            ).all()
+
+            # 2. Validation: Check if we found everyone
+            if len(participants) != len(set(id_list)):
+                found_ids = {p.ID_uczestnika_grupy for p in participants}
+                missing_ids = set(id_list) - found_ids
+                logger.warning("Participants missing or wrong group: %s", missing_ids)
+                raise HTTPException(
+                    status_code=404, 
+                    detail=f"Participants {missing_ids} not found or belong to another group"
+                )
+            # 3. Assign the full list at once
+            new_spotkanie.obecni_uczestnicy = participants
+
         db.add(new_spotkanie)
-        db.flush()  # Flush to generate the ID without committing
-        
-        id_obecnych_uczestnikow = spotkanie_data.obecni_uczestnicy or [] # or [] - co to tu robi?
-        if id_obecnych_uczestnikow:
-            print(f'id obecnych uczestników (input): {id_obecnych_uczestnikow}')
-            # poniższa wykomentowana część to moje poprzednie rozwiązanie
-            uczestnik_to_add = db.query(UczestnikGrupy).filter(UczestnikGrupy.ID_uczestnika_grupy.in_(id_obecnych_uczestnikow)).all()
-            print(f'Number of uczestnik_to_add: {len(uczestnik_to_add)}')
-            print(f'uczestnik_to_add IDs: {[u.ID_uczestnika_grupy for u in uczestnik_to_add]}')
-            # TODO; dodać sprawdzenie, czy uczestnik o danym id na pewno jest w tej grupie
-            new_spotkanie.obecni_uczestnicy.extend(uczestnik_to_add)
-            print(f'new spotkanie obecni uczestnicy IDs after extend: {[u.ID_uczestnika_grupy for u in new_spotkanie.obecni_uczestnicy]}')
-            
-            # # poniższy fragment zaproponowany przez copilota
-            # # Insert directly into association table instead of using relationship collection
-            # for uczestnik_id in id_obecnych_uczestnikow:
-            #     # Verify the uczestnik actually exists first
-            #     uczestnik = db.query(UczestnikGrupy).filter(UczestnikGrupy.ID_uczestnika_grupy == uczestnik_id).first()
-            #     if not uczestnik:
-            #         logger.warning("UczestnikGrupy with ID %d does not exist", uczestnik_id)
-            #         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-            #                           detail=f"UczestnikGrupy with ID {uczestnik_id} not found")
-            #     # Insert into association table using raw SQL
-            #     stmt = obecni_uczestnicy_spotkania.insert().values(
-            #         ID_uczestnika_grupy=uczestnik_id,
-            #         ID_spotkania=new_spotkanie.ID_spotkania
-            #     )
-            #     db.execute(stmt)
-            #     print(f'Added ID {uczestnik_id} to association table')
         db.commit()
         db.refresh(new_spotkanie)
-        logger.info("Spotkanie grupowe created successfully with ID: %d", new_spotkanie.ID_spotkania)
+        
+        logger.info("Spotkanie grupowe created with ID: %d", new_spotkanie.ID_spotkania)
         return new_spotkanie
+
     except HTTPException:
+        db.rollback() # Always rollback on known errors
         raise
     except Exception as e:
+        db.rollback() # Always rollback on unexpected errors
         logger.error("Error creating spotkanie grupowe: %s", str(e), exc_info=True)
         raise
 
 def update_spotkanie_grupowe(db: Session, id_spotkania: int, spotkanie_data: SpotkanieGrupoweUpdate):
     try:
         logger.info("Updating spotkanie grupowe with ID: %d", id_spotkania)
+        spotkanie = db.query(SpotkanieGrupowe).filter(SpotkanieGrupowe.ID_spotkania == id_spotkania).first()
+        if not spotkanie:
+            raise HTTPException(status_code=404, detail="Spotkanie not found")
+        
         data_dict = spotkanie_data.model_dump(by_alias=True, exclude={'obecni_uczestnicy'}, exclude_unset=True)
         data_dict["Last_modified"] = datetime.now()
-        # spotkanie = get_spotkanie_by_id(db, id_spotkania)
-        spotkanie = db.query(SpotkanieGrupowe).filter(SpotkanieGrupowe.ID_spotkania == id_spotkania).first()
 
         for key, value in data_dict.items():
             setattr(spotkanie, key, value)
         
+        # relationship update
+        if spotkanie_data.obecni_uczestnicy is not None:
+            id_list = spotkanie_data.obecni_uczestnicy
+            
+            new_participants = db.query(UczestnikGrupy).filter(
+                UczestnikGrupy.ID_uczestnika_grupy.in_(id_list),
+                UczestnikGrupy.ID_grupy == spotkanie.ID_grupy
+            ).all()
+
+            # Validation
+            if len(new_participants) != len(set(id_list)):
+                found_ids = {p.ID_uczestnika_grupy for p in new_participants}
+                missing_ids = set(id_list) - found_ids
+                raise HTTPException(status_code=400, detail=f"Invalid participant IDs: {missing_ids}")
+
+            # OVERWRITE the relationship. 
+            # SQLAlchemy automatically handles the deletes/inserts in the association table.
+            spotkanie.obecni_uczestnicy = new_participants
+
         db.commit()
         db.refresh(spotkanie)
         logger.info("Spotkanie grupowe with ID %d updated successfully", id_spotkania)
