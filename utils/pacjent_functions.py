@@ -21,6 +21,7 @@ from schemas.pacjent_schemas import (
 
 from utils.validation import validate_choice, validate_choice_fields, clean_empty
 from utils.safe_mappings import SORTABLE_FIELDS, FILTERING_FIELDS, SEARCHABLE_FIELDS
+from utils import pdfs
 
 logger = logging.getLogger("opta_system_logger")
 
@@ -514,3 +515,12 @@ def search_pacjenci_alone(db: Session, search_term: str):
     query = db.query(Pacjent)
     return search_pacjenci(query, search_term).limit(5).all()
 
+def get_pacjent_pdf(db: Session, id_pacjenta: int):
+    pacjent = db.query(Pacjent).filter(ID_pacjenta = id_pacjenta).first()
+    pdf_bytes = pdfs.generate_patient_pdf(pacjent)
+    
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=pacjent_{id_pacjenta}.pdf"}
+    )
