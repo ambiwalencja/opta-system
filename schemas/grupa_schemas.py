@@ -18,8 +18,8 @@ class GrupaCreate(BaseModel):
         validate_by_alias = True
 
 class ProwadzacyDisplay(BaseModel):
-    # id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
     full_name: str = Field(..., alias="Full_name")
+    id_uzytkownika: int = Field(..., alias="ID_uzytkownika")
 
 class UczestnikGrupyDisplayShort(BaseModel):
     id_uczestnika_grupy: int = Field(..., alias="ID_uczestnika_grupy")

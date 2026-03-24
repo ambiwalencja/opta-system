@@ -65,31 +65,31 @@ def create_spotkanie_grupowe(db: Session, spotkanie_data: SpotkanieGrupoweCreate
         
         id_obecnych_uczestnikow = spotkanie_data.obecni_uczestnicy or [] # or [] - co to tu robi?
         if id_obecnych_uczestnikow:
-            # print(f'id obecnych uczestników (input): {id_obecnych_uczestnikow}')
+            print(f'id obecnych uczestników (input): {id_obecnych_uczestnikow}')
             # poniższa wykomentowana część to moje poprzednie rozwiązanie
-            # uczestnik_to_add = db.query(UczestnikGrupy).filter(UczestnikGrupy.ID_uczestnika_grupy.in_(id_obecnych_uczestnikow)).all()
-            # print(f'Number of uczestnik_to_add: {len(uczestnik_to_add)}')
-            # print(f'uczestnik_to_add IDs: {[u.ID_uczestnika_grupy for u in uczestnik_to_add]}')
-            # # TODO; dodać sprawdzenie, czy uczestnik o danym id na pewno jest w tej grupie
-            # new_spotkanie.obecni_uczestnicy.extend(uczestnik_to_add)
-            # print(f'new spotkanie obecni uczestnicy IDs after extend: {[u.ID_uczestnika_grupy for u in new_spotkanie.obecni_uczestnicy]}')
+            uczestnik_to_add = db.query(UczestnikGrupy).filter(UczestnikGrupy.ID_uczestnika_grupy.in_(id_obecnych_uczestnikow)).all()
+            print(f'Number of uczestnik_to_add: {len(uczestnik_to_add)}')
+            print(f'uczestnik_to_add IDs: {[u.ID_uczestnika_grupy for u in uczestnik_to_add]}')
+            # TODO; dodać sprawdzenie, czy uczestnik o danym id na pewno jest w tej grupie
+            new_spotkanie.obecni_uczestnicy.extend(uczestnik_to_add)
+            print(f'new spotkanie obecni uczestnicy IDs after extend: {[u.ID_uczestnika_grupy for u in new_spotkanie.obecni_uczestnicy]}')
             
-            # poniższy fragment zaproponowany przez copilota
-            # Insert directly into association table instead of using relationship collection
-            for uczestnik_id in id_obecnych_uczestnikow:
-                # Verify the uczestnik actually exists first
-                uczestnik = db.query(UczestnikGrupy).filter(UczestnikGrupy.ID_uczestnika_grupy == uczestnik_id).first()
-                if not uczestnik:
-                    logger.warning("UczestnikGrupy with ID %d does not exist", uczestnik_id)
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                                      detail=f"UczestnikGrupy with ID {uczestnik_id} not found")
-                # Insert into association table using raw SQL
-                stmt = obecni_uczestnicy_spotkania.insert().values(
-                    ID_uczestnika_grupy=uczestnik_id,
-                    ID_spotkania=new_spotkanie.ID_spotkania
-                )
-                db.execute(stmt)
-                print(f'Added ID {uczestnik_id} to association table')
+            # # poniższy fragment zaproponowany przez copilota
+            # # Insert directly into association table instead of using relationship collection
+            # for uczestnik_id in id_obecnych_uczestnikow:
+            #     # Verify the uczestnik actually exists first
+            #     uczestnik = db.query(UczestnikGrupy).filter(UczestnikGrupy.ID_uczestnika_grupy == uczestnik_id).first()
+            #     if not uczestnik:
+            #         logger.warning("UczestnikGrupy with ID %d does not exist", uczestnik_id)
+            #         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+            #                           detail=f"UczestnikGrupy with ID {uczestnik_id} not found")
+            #     # Insert into association table using raw SQL
+            #     stmt = obecni_uczestnicy_spotkania.insert().values(
+            #         ID_uczestnika_grupy=uczestnik_id,
+            #         ID_spotkania=new_spotkanie.ID_spotkania
+            #     )
+            #     db.execute(stmt)
+            #     print(f'Added ID {uczestnik_id} to association table')
         db.commit()
         db.refresh(new_spotkanie)
         logger.info("Spotkanie grupowe created successfully with ID: %d", new_spotkanie.ID_spotkania)
