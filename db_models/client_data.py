@@ -116,7 +116,8 @@ class Grupa(Base):
 obecni_uczestnicy_spotkania = Table(
     'obecni_uczestnicy_spotkania', Base.metadata,
     Column('ID_uczestnika_grupy', Integer, ForeignKey('client_data.uczestnicy_grupy.ID_uczestnika_grupy'), primary_key=True),
-    Column('ID_spotkania', Integer, ForeignKey('client_data.spotkania_grupowe.ID_spotkania'), primary_key=True)
+    Column('ID_spotkania', Integer, ForeignKey('client_data.spotkania_grupowe.ID_spotkania'), primary_key=True),
+    schema='client_data'
 )
 
 class UczestnikGrupy(Base):
@@ -145,7 +146,6 @@ class SpotkanieGrupowe(Base):
     Last_modified = Column(DateTime)
     Data_spotkania = Column(Date)
     Liczba_godzin = Column(Numeric(3, 1))
-    # Obecni_uczestnicy = Column(JSON) # lista ID pacjentow - zamieniona na many-to-many relationship
     Notatka_przebieg = Column(String)
 
     grupa = relationship('Grupa', back_populates='spotkania_grupowe')
