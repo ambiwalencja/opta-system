@@ -42,9 +42,12 @@ def delete_grupa(id_grupy: int = FastapiQuery(...), db: Session = Depends(get_db
     return grupa_functions.delete_grupa(db, id_grupy)
 
 @router.get('/all', response_model=list[GrupaDisplayOnList])
-def show_all_groups(db: Session = Depends(get_db), current_user: User = Depends(get_user_from_token("access_token"))):
+def show_all_groups(db: Session = Depends(get_db), 
+                    current_user: User = Depends(get_user_from_token("access_token")),
+                    current: bool = FastapiQuery(default=False),
+                    recently_ended: bool = FastapiQuery(default=False)):
     logger.info("User %s retrieving all groups", current_user.Username)
-    return grupa_functions.get_all_groups(db)
+    return grupa_functions.get_all_groups_variants(db, current, recently_ended)
 
 
 
