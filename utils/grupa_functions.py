@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 import logging
 from sqlalchemy import or_
@@ -153,6 +153,43 @@ def delete_grupa(db: Session, id_grupy: int):
 def get_all_groups(db: Session):
     try:
         grupa_list = db.query(Grupa).order_by(Grupa.Data_rozpoczecia.desc()).all()
+        logger.debug("Calculating uczestnicy count for each group")
+        for grupa in grupa_list:
+            uczestnicy_count = db.query(UczestnikGrupy).filter(
+                UczestnikGrupy.ID_grupy == grupa.ID_grupy
+            ).count()
+            grupa.Uczestnicy_count = uczestnicy_count
+        logger.info("Retrieved %d groups", len(grupa_list))
+        return grupa_list
+    except Exception as e:
+        logger.error("Error retrieving groups: %s", str(e), exc_info=True)
+        raise
+
+def get_all_groups_variants(db: Session, current: bool = False, recently_ended: bool = False):
+    try:
+        grupa_list = db.query(Grupa).order_by(Grupa.Data_rozpoczecia.desc())
+        current_date = datetime.now().date()
+        if recently_ended and current:
+            grupa_list = grupa_list.filter(
+                or_(
+                    Grupa.Data_zakonczenia >= current_date - timedelta(days=30),
+                    Grupa.Data_zakonczenia == None
+                )
+            ).all()
+        elif current:
+            grupa_list = grupa_list.filter(
+                or_(
+                    Grupa.Data_zakonczenia >= current_date,
+                    Grupa.Data_zakonczenia == None
+                )
+            ).all()
+        elif recently_ended:
+            grupa_list = grupa_list.filter(
+                Grupa.Data_zakonczenia >= current_date - timedelta(days=30),
+                Grupa.Data_zakonczenia < current_date
+            ).all()
+        else:
+            grupa_list = grupa_list.all()
         logger.debug("Calculating uczestnicy count for each group")
         for grupa in grupa_list:
             uczestnicy_count = db.query(UczestnikGrupy).filter(
