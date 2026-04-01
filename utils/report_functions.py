@@ -204,6 +204,29 @@ def get_postepowanie_as_bool_counts(db: Session, date_range: Optional[Tuple[date
         logger.error("Error getting postepowanie as bool counts: %s", str(e), exc_info=True)
         raise
 
+def get_text_variable_counts(db: Session, variable_name: str, date_range: Optional[Tuple[date, date]] = None) -> Dict[str, int]:
+    try:
+        logger.info("Getting text variable counts for: %s with date_range: %s", variable_name, str(date_range))
+        if not hasattr(Pacjent, variable_name):
+            logger.warning("Invalid variable name requested: %s", variable_name)
+            raise ValueError(f"Invalid variable name: {variable_name}")
+        variable_column = getattr(Pacjent, variable_name)
+        counts_query = db.query(variable_column, func.count(Pacjent.ID_pacjenta)).filter(variable_column.is_not(None))
+        if date_range:
+            counts_query = counts_query.filter(
+                Pacjent.Data_zgloszenia > date_range[0],
+                Pacjent.Data_zgloszenia <= date_range[1]
+            )
+        counts = counts_query.group_by(variable_column).all()
+        result = {value: count for value, count in counts}
+        logger.info("Text variable counts retrieved for %s: %d unique values", variable_name, len(result))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error getting text variable counts for %s: %s", variable_name, str(e), exc_info=True)
+        raise
+
 def get_wizyty_counts(db: Session, date_range: Optional[Tuple[date, date]] = None) -> Dict[int, int]:
     try:
         logger.info("Getting wizyty counts with date_range: %s", str(date_range))
