@@ -315,10 +315,11 @@ def import_wizyty_ind_to_new_db(df: pd.DataFrame, db: Session):
 
 def import_grupy_from_dict_to_new_db(db: Session):
     for nr, attributes in GRUPY_TABLE_MAP.items():
-        nazwa_grupy_value, data_rozp_value, typ_grupy_value = attributes
+        nazwa_grupy_value, data_rozp_value, data_zak_value, typ_grupy_value = attributes
         input_data = {
             "Nazwa_grupy": nazwa_grupy_value,
             "Data_rozpoczecia": data_rozp_value,
+            "Data_zakonczenia": data_zak_value,
             "Typ_grupy": typ_grupy_value
         }
         try:
