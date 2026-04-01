@@ -1,10 +1,11 @@
 
 from fastapi import HTTPException, status
-from datetime import datetime
-from sqlalchemy import func, distinct
-# from sqlalchemy.orm import aliased
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import func
 from sqlalchemy.orm.session import Session
 import logging
+from datetime import datetime
 
 from db_models.client_data import Pacjent, WizytaIndywidualna
 
@@ -174,6 +175,16 @@ def get_recent_wizyty_for_user(db: Session, id_uzytkownika: int, limit: int = No
         return wizyty
     except Exception as e:
         logger.error("Error retrieving recent wizyty for user with ID %d and limit %d: %s", id_uzytkownika, limit, str(e), exc_info=True)
+        raise
+
+def get_all_wizyty_for_user(db: Session, id_uzytkownika: int) -> Page[WizytaIndywidualna]:
+    try:
+        logger.info("Retrieving all wizyty for user with ID: %d", id_uzytkownika)
+        wizyty_query = db.query(WizytaIndywidualna).filter(WizytaIndywidualna.ID_uzytkownika == id_uzytkownika).order_by(WizytaIndywidualna.Data_wizyty.desc())
+        logger.debug("All wizyty retrieved for user with ID: %d", id_uzytkownika)
+        return paginate(wizyty_query)
+    except Exception as e:
+        logger.error("Error retrieving all wizyty for user with ID %d: %s", id_uzytkownika, str(e), exc_info=True)
         raise
 
 def count_wizyty_for_pacjent(db: Session, id_pacjenta: int):
