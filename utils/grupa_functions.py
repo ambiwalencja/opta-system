@@ -165,9 +165,11 @@ def get_all_groups(db: Session):
         logger.error("Error retrieving groups: %s", str(e), exc_info=True)
         raise
 
-def get_all_groups_variants(db: Session, current: bool = False, recently_ended: bool = False):
+def get_all_groups_variants(db: Session, current: bool = False, recently_ended: bool = False, id_uzytkownika: int = None):
     try:
         grupa_list = db.query(Grupa).order_by(Grupa.Data_rozpoczecia.desc())
+        if id_uzytkownika is not None:
+            grupa_list = grupa_list.join(Grupa.prowadzacy).filter(User.ID_uzytkownika == id_uzytkownika)
         current_date = datetime.now().date()
         if recently_ended and current:
             grupa_list = grupa_list.filter(

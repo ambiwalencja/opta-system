@@ -1,3 +1,4 @@
+from fastapi_pagination.links import Page
 from sqlalchemy.orm.session import Session
 from fastapi import APIRouter, Depends, Query as FastapiQuery #, HTTPException, status
 import logging
@@ -69,6 +70,34 @@ def show_recent_detailed_wizyty_for_pacjent(id_pacjenta: Optional[int] = Fastapi
     '''Show detailed recent wizyty for the pacjent, with optional limit'''
     logger.info("User %s viewing detailed recent wizyty for pacjent with ID: %d and limit: %s", current_user.Username, id_pacjenta, limit)
     wizyty = wizyta_functions.get_recent_wizyty_for_pacjent(db, id_pacjenta, limit)
+    return wizyty
+
+@router.get('/my_wizyty_with_limit', response_model=list[WizytaIndywidualnaDisplay])
+def show_my_wizyty(limit: Optional[int] = FastapiQuery(100, description="Optional limit for recent wizyty"), 
+                    db: Session = Depends(get_db), 
+                     current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    '''Show wizyty for the current user, with default limit 100'''
+    logger.info("User %s viewing their recent wizyty with limit: %s", current_user.Username, limit)
+    wizyty = wizyta_functions.get_recent_wizyty_for_user(db, current_user.ID_uzytkownika, limit)
+    return wizyty
+
+@router.get('/wizyty_for_user_with_limit', response_model=list[WizytaIndywidualnaDisplay])
+def show_wizyty_for_user(id_uzytkownika: int, 
+                         limit: Optional[int] = FastapiQuery(100, description="Optional limit for recent wizyty"), 
+                         db: Session = Depends(get_db), 
+                         current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    '''Show wizyty for the specified user, with default limit 100'''
+    logger.info("User %s viewing wizyty for user with ID: %d and limit: %s", current_user.Username, id_uzytkownika, limit)
+    wizyty = wizyta_functions.get_recent_wizyty_for_user(db, id_uzytkownika, limit)
+    return wizyty
+
+@router.get('/all_wizyty_for_user', response_model=Page[WizytaIndywidualnaDisplay])
+def show_all_wizyty_for_user(id_uzytkownika: int, 
+                         db: Session = Depends(get_db), 
+                         current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
+    '''Show wizyty for the specified user, with no limit'''
+    logger.info("User %s viewing wizyty for user with ID: %d", current_user.Username, id_uzytkownika)
+    wizyty = wizyta_functions.get_all_wizyty_for_user(db, id_uzytkownika)
     return wizyty
 
 @router.get('/wizyty_counts_for_pacjent')

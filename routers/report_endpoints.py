@@ -87,6 +87,7 @@ def get_all_text_form_variable_counts(db: Session = Depends(get_db),
                        current_user: UserSignIn = Depends(get_user_from_token("access_token")),
                        start: Optional[date] = FastapiQuery(None, description="Start date (YYYY-MM-DD)"),
                         end: Optional[date] = FastapiQuery(None, description="End date (YYYY-MM-DD)")):
+    '''No charts here, just a table, cause these are just aggregated text answers.'''
     if current_user.Role != 'admin':
         logger.warning("Unauthorized pacjent_form_text_all report request by user: %s", current_user.Username)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
@@ -95,7 +96,7 @@ def get_all_text_form_variable_counts(db: Session = Depends(get_db),
     variable_names = report_variables_lists.text_fields
     result = {}
     for variable_name in variable_names:
-        counts = report_functions.get_single_choice_form_variable_counts(db, variable_name, date_range)
+        counts = report_functions.get_text_variable_counts(db, variable_name, date_range)
         result[variable_name] = counts
     return result
 
