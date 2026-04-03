@@ -516,7 +516,7 @@ def search_pacjenci_alone(db: Session, search_term: str):
     return search_pacjenci(query, search_term).limit(5).all()
 
 def get_pacjent_pdf(db: Session, id_pacjenta: int):
-    pacjent = db.query(Pacjent).filter(ID_pacjenta = id_pacjenta).first()
+    pacjent = db.query(Pacjent).filter(Pacjent.ID_pacjenta == id_pacjenta).first()
     pdf_bytes = pdfs.generate_patient_pdf(pacjent)
     
     return StreamingResponse(
