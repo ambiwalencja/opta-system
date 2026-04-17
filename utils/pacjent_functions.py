@@ -511,6 +511,29 @@ def get_all_pacjenci(
         logger.error("Error retrieving all pacjenci: %s", str(e), exc_info=True)
         raise
 
+def get_all_pacjenci_no_pagination(
+        db: Session, 
+        sort_by: str, 
+        sort_direction: str,
+        search_term: str = None,
+        filters: List[str] = None
+    ) -> Page[Pacjent]:
+    try:
+        query = db.query(Pacjent)
+        query = search_pacjenci(query, search_term)
+        query = filter_pacjenci(query, filters)
+        query = sort_pacjenci(query, sort_by, sort_direction)
+        logger.debug("Retrieving paginated pacjent list (sort_by=%s, sort_direction=%s, search_term=%s, filters=%s)", sort_by, sort_direction, search_term, filters)
+        pdf_output = pdfs.generate_patient_list_pdf(query.all(), search_term, filters)
+        return StreamingResponse(
+            BytesIO(pdf_output),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=lista_pacjentow.pdf"}
+            )
+    except Exception as e:
+        logger.error("Error retrieving all pacjenci: %s", str(e), exc_info=True)
+        raise
+
 def search_pacjenci_alone(db: Session, search_term: str):
     query = db.query(Pacjent)
     return search_pacjenci(query, search_term).limit(5).all()
