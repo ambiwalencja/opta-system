@@ -117,7 +117,7 @@ data = [
         }},
     {"Variable_ID": 20, "Variable_name": "Status_pacjenta", "Variable_label": "Status klienta w organizacji:", "Possible_values": {
         "przekierowanie do innej placówki": "radio",
-        "aktywny, klient w kontakcie": "radio",
+        "aktywny - klient w kontakcie": "radio",
         "zakończona pomoc": "radio",
         "rezygnacja": "radio",
         "kontakt zawieszony": "radio",

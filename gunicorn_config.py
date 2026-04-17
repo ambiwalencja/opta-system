@@ -3,7 +3,7 @@ import os
 
 # bind = "0.0.0.0:8000"
 worker_class = "uvicorn.workers.UvicornWorker"
-workers = 4
+workers = 1
 accesslog = "-" # "/log/access.log"
 errorlog = "-" # "/log/error.log"
 loglevel = os.getenv("LOG_LEVEL", "info")  # default to 'info' if not set in .env
