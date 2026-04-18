@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 from sqlalchemy.schema import CreateSchema
+from sqlalchemy.exc import ProgrammingError
 import json
 
 # if os.name == "nt":
@@ -43,10 +44,18 @@ def get_db():
 
 def create_schema(schema_name): # Create schemas if they don't exist
     with engine.connect() as connection:
-        # Check if schema_a exists, if not, create it
-        if not connection.dialect.has_schema(connection, schema_name):
-            connection.execute(CreateSchema(schema_name))
-            print(f"Schema {schema_name} created.")
-        else:
-            print(f"Schema {schema_name} already exists.")
-        connection.commit() # Commit the schema creation
+        try:
+            # Check if schema exists, if not, create it
+            if not connection.dialect.has_schema(connection, schema_name):
+                connection.execute(CreateSchema(schema_name))
+                print(f"Schema {schema_name} created.")
+                connection.commit()
+            else:
+                print(f"Schema {schema_name} already exists.")
+        except ProgrammingError as e:
+            # Handle race condition where schema was created by another worker
+            if "already exists" in str(e):
+                print(f"Schema {schema_name} already exists.")
+                connection.rollback()
+            else:
+                raise

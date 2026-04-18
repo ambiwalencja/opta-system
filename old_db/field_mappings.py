@@ -81,7 +81,7 @@ PLACOWKA_KIERUJACA_MAP = {
 
 STATUS_PACJENTA_MAP = { # bo w stastusie nagle liczby nie były intami tylko stringami
     "1": "przekierowanie do innej placówki",
-    "2": "aktywny, klient w kontakcie",
+    "2": "aktywny - klient w kontakcie",
     "3": "zakończona pomoc",
     "4": "rezygnacja",
     "5": "kontakt zawieszony",

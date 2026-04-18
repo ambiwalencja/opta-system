@@ -1,6 +1,5 @@
 from fpdf import FPDF
 
-#TODO: wrapowanie trochę popsuło layout, nierówno jest, poprosić copilota o wyrównanie.
 class PatientPDF(FPDF):
     def __init__(self):
         super().__init__()
@@ -85,8 +84,6 @@ class PatientPDF(FPDF):
         self.set_font("DejaVu", "B", 12)
         self.cell(0, 10, title, ln=True, fill=True)
         self.ln(2)
-
-
 
 def generate_patient_pdf(pacjent_data):
     pdf = PatientPDF()
@@ -208,4 +205,79 @@ def generate_patient_pdf(pacjent_data):
     pdf.ln(5)
     
     # Return the bytes
+    return pdf.output()
+
+class PacjentListPDF(FPDF):
+    def __init__(self, filters_text=None):
+        super().__init__(orientation='L') # Landscape is better for tables
+        self.add_font('DejaVu', '', 'DejaVuSans.ttf')
+        self.add_font('DejaVu', 'B', 'DejaVuSans.ttf')
+        self.filters_text = filters_text
+
+    def header(self):
+        # Header Bar
+        self.set_fill_color(41, 128, 185)
+        self.rect(0, 0, 297, 15, 'F') # 297mm for Landscape A4
+        self.set_y(5)
+        self.set_text_color(255, 255, 255)
+        self.set_font("DejaVu", "B", 14)
+        self.cell(0, 5, "RAPORT PACJENTÓW - STOWARZYSZENIE OPTA", ln=True, align="C")
+        
+        # Filters Info
+        if self.filters_text:
+            self.set_y(17)
+            self.set_text_color(100, 100, 100)
+            self.set_font("DejaVu", "", 9)
+            self.multi_cell(0, 5, f"Filtry: {self.filters_text}")
+        
+        self.set_text_color(0, 0, 0)
+        self.set_y(28)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("DejaVu", "", 8)
+        self.cell(0, 10, f"Strona {self.page_no()}/{{nb}}", align="C")
+
+
+def generate_patient_list_pdf(pacjenci_data, search_term=None, filters=None):
+    # TODO - sprawdzić to wszystko
+    # 2. Setup PDF
+    filter_desc = f"Szukaj: {search_term} | Filtry: {', '.join(filters) if filters else 'Brak'}"
+    pdf = PacjentListPDF(filters_text=filter_desc)
+    pdf.add_page()
+    pdf.set_font("DejaVu", "", 9)
+
+    # 3. Create Table Data
+    # The first row is the header
+    table_data = [
+        ("ID", "Imię", "Nazwisko", "Data zgł.", "Email", "Telefon", "Dzielnica", "Status")
+    ]
+
+    for p in pacjenci_data:
+        table_data.append((
+            str(p.ID_pacjenta),
+            str(p.Imie),
+            str(p.Nazwisko),
+            str(p.Data_zgloszenia),
+            str(p.Email or "-"),
+            str(p.Telefon or "-"),
+            str(p.Dzielnica),
+            str(p.Status_pacjenta or "-")
+        ))
+
+    # 4. Render Table
+    with pdf.table(
+        borders_layout="HORIZONTAL_LINES",
+        cell_fill_color=(245, 245, 245),
+        cell_fill_mode="ROWS",
+        line_height=7,
+        text_align=("LEFT", "LEFT", "LEFT", "LEFT", "LEFT", "LEFT", "LEFT", "LEFT"),
+        width=280 # Total width in Landscape
+    ) as table:
+        for data_row in table_data:
+            row = table.row()
+            for datum in data_row:
+                row.cell(datum)
+
+    # 5. Return Response
     return pdf.output()

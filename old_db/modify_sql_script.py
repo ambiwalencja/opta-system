@@ -1,8 +1,9 @@
 import os
+import re
 
 # --- 1. Setup: Configuration ---
-INPUT_FILE = 'backup-on-2026-03-17-16-24-36.sql'   # The name of your original SQL file
-OUTPUT_FILE = 'backup-on-2026-03-17-16-24-36-cleaned.sql' # The name of the modified file
+INPUT_FILE = 'backup-on-2026-04-17-19-03-55.sql'   # The name of your original SQL file
+OUTPUT_FILE = 'backup-on-2026-04-17-19-03-55-cleaned_2.sql' # The name of the modified file
 
 # Define all the modifications you want to make here.
 # Key: The text to find | Value: The text to replace it with
@@ -12,6 +13,30 @@ modifications = {
     # "TYPE=InnoDB": "ENGINE=InnoDB",   # Example: Fix deprecated syntax
     # You can add hundreds of these pairs!
 }
+
+def fix_data_wizyty_rok_mismatch(content):
+    """Fix mismatches between data_wizyty year and rok column in wizyty table.
+    
+    The rok column contains the correct year. If the year in data_wizyty doesn't
+    match, it will be corrected to match rok.
+    """
+    # Pattern: 'YYYY-MM-DD', YYYY, (matches data_wizyty date and rok value)
+    pattern = r"'(\d{4})-(\d{2})-(\d{2})',\s*(\d{4}),"
+    
+    def replacer(match):
+        data_year = match.group(1)   # Year from data_wizyty
+        month = match.group(2)
+        day = match.group(3)
+        rok_year = match.group(4)    # Year from rok column
+        
+        # If they don't match, use the rok year
+        if data_year != rok_year:
+            return f"'{rok_year}-{month}-{day}', {rok_year},"
+        else:
+            return match.group(0)    # Return unchanged
+    
+    fixed_content = re.sub(pattern, replacer, content)
+    return fixed_content
 
 def modify_sql_script(input_path, output_path, changes_dict):
     try:
@@ -33,6 +58,11 @@ def modify_sql_script(input_path, output_path, changes_dict):
             count = modified_content.count(find_text)
             modified_content = modified_content.replace(find_text, replace_text)
             print(f" - Replaced '{find_text}' with '{replace_text}' ({count} times)")
+
+        # Fix data_wizyty and rok mismatches
+        print("\nFixing data_wizyty/rok year mismatches in wizyty table...")
+        modified_content = fix_data_wizyty_rok_mismatch(modified_content)
+        print(" - Corrected dates where year in data_wizyty didn't match rok column")
 
         # 4. Save the results
         with open(output_path, 'w', encoding='utf-8') as file:
