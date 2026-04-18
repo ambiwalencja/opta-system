@@ -14,6 +14,7 @@ router = APIRouter(
 
 logger = logging.getLogger("opta_system_logger")
 
+
 @router.post('/populate_possible_values')
 def populate_values(db: Session = Depends(get_db), current_user: UserSignIn = Depends(get_user_from_token("access_token"))):
     try:
@@ -24,6 +25,19 @@ def populate_values(db: Session = Depends(get_db), current_user: UserSignIn = De
         logger.info("Populating possible values by admin %s", current_user.Username)
         define_possible_values_table.populate_possible_values(db)
         logger.info("Possible values populated successfully by admin %s", current_user.Username)
+        return True
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error populating possible values: %s", str(e), exc_info=True)
+        raise
+
+@router.post('/populate_possible_values_no_auth')
+def populate_values_no_auth(db: Session = Depends(get_db)):
+    try:
+        logger.info("Populating possible values")
+        define_possible_values_table.populate_possible_values(db)
+        logger.info("Possible values populated successfully")
         return True
     except HTTPException:
         raise
