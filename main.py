@@ -26,6 +26,7 @@ app = FastAPI(
     title="OPTA system",
     description="System dokumentacji i ewaluacji OPTA",
     version="0.1",
+    root_path="/api"
 )
 
 # LOGGER
